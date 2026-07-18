@@ -1,7 +1,9 @@
-# apps/api
+# apps/api — Shooting Star backend
 
-Backend. FastAPI + LangGraph orchestration + LangChain, backed by Postgres, Pinecone, Neo4j, Redis, S3.
+FastAPI + SQLAlchemy. LLM via any OpenAI-compatible endpoint (Ollama local/cloud) with deterministic mock fallback.
 
-Owns: auth, topic/syllabus ingestion, quiz generation, answer analysis (weak-concept detection), concept visualization spec generation, knowledge graph, points ledger, rewards catalog.
+    python3 -m venv .venv && source .venv/bin/activate
+    pip install -r requirements.txt
+    uvicorn app.main:app --reload    # http://localhost:8000  (docs at /docs)
 
-See /docs/PROMPT.md for the full build spec.
+Config via apps/api/.env — see /.env.example. Tests: python3 -m pytest

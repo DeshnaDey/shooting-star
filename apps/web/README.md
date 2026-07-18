@@ -1,7 +1,5 @@
-# apps/web
+# apps/web — Shooting Star frontend
 
-Frontend. React + TypeScript + Vite + React Router + Tailwind + Radix/shadcn-style primitives + Framer Motion.
+React + TS + Vite + react-three-fiber. Talks to apps/api (FastAPI) via VITE_API_BASE_URL (default http://localhost:8000).
 
-Starting point: the "Design Constellation AI Dashboard" Figma prototype (space/constellation theme). Pages already designed there — galaxy home, galaxy map (knowledge graph), missions/visualisor, quiz, quiz-mission (test taking + results), concept visualizer, timeline, achievements, friends, exchange — should be wired to the real API instead of mock data.
-
-See /docs/PROMPT.md for the full build spec.
+npm install && npm run dev
