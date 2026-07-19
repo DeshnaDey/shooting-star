@@ -29,7 +29,7 @@ export default function ConceptPlayer({ frames }: { frames: Frame[] }) {
     <div>
       <div style={{
         border: "1px solid rgba(183,156,251,0.3)",
-        background: "rgba(25,18,40,0.7)",
+        background: "rgba(11,24,45,0.7)",
         padding: "18px 10px 10px",
         clipPath: "polygon(14px 0%, 100% 0%, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0% 100%, 0% 14px)",
       }}>
@@ -38,7 +38,7 @@ export default function ConceptPlayer({ frames }: { frames: Frame[] }) {
             const h = (v / maxVal) * (H - 70);
             const isHot = frame.highlights.includes(i);
             const isSet = frame.merged?.includes(i);
-            const fill = isHot ? "#f78fd2" : isSet ? "#b79cfb" : "rgba(212,198,253,0.32)";
+            const fill = isHot ? "#f6d48f" : isSet ? "#6ec9e8" : "rgba(163,220,240,0.30)";
             return (
               <g key={i}>
                 <rect
@@ -50,7 +50,7 @@ export default function ConceptPlayer({ frames }: { frames: Frame[] }) {
                   fill={fill}
                   style={{
                     transition: "all 0.5s ease",
-                    filter: isHot ? "drop-shadow(0 0 8px rgba(247,143,210,0.7))" : "none",
+                    filter: isHot ? "drop-shadow(0 0 8px rgba(213,139,232,0.7))" : "none",
                   }}
                 />
                 <text

@@ -1,32 +1,40 @@
-/* ─── Shooting Star — pink · purple · white palette ─────────────────────── */
+/* ─── Shooting Star — navy · purple · lilac · sky · gold palette ─────────── */
 :root {
-  /* Space backgrounds — lifted toward plum/lavender, less black */
-  --bg-void: #191228;
-  --bg-deep: #221a38;
-  --bg-nebula: #2e2348;
-  --bg-panel: rgba(42, 32, 68, 0.88);
+  /* Space backgrounds — deep galactic navy */
+  --bg-void: #0b1c3b;
+  --bg-deep: #10254a;
+  --bg-nebula: #16305c;
+  --bg-panel: rgba(14, 30, 60, 0.9);
 
   /* Purples */
-  --purple-dim: #6f5c94;
-  --purple: #9d74f7;
-  --purple-soft: #b79cfb;
-  --purple-pale: #d4c6fd;
+  --purple-dim: #5a4076;
+  --purple: #7a4ba8;
+  --purple-soft: #9d6fc8;
+  --purple-pale: #c9a7e6;
 
-  /* Pinks — baby pink forward */
-  --pink-deep: #e07fb4;
-  --pink: #f78fd2;
-  --pink-soft: #f9bce2;
-  --pink-pale: #fde3f2;
+  /* Lilac + sky + gold accents (the diversified range) */
+  --lilac: #d58be8;
+  --blue: #6ec9e8;
+  --blue-soft: #a3dcf0;
+  --gold: #f6d48f;
 
-  /* Whites */
-  --white-core: #fff8fd;
-  --text-bright: rgba(255, 248, 253, 0.97);
-  --text-main: rgba(248, 238, 252, 0.9);
-  --text-dim: rgba(222, 205, 250, 0.72);
-  --text-faint: rgba(200, 178, 250, 0.5);
+  /* Legacy "pink" names retained → repointed to lilac so accents cool off */
+  --pink-deep: #b96fd0;
+  --pink: #d58be8;
+  --pink-soft: #e3b3f0;
+  --pink-pale: #f0d9f8;
 
-  --glow-pink: rgba(247, 143, 210, 0.6);
-  --glow-purple: rgba(157, 116, 247, 0.55);
+  /* Whites — cooled toward starlight */
+  --white-core: #f4fbff;
+  --text-bright: rgba(244, 251, 255, 0.97);
+  --text-main: rgba(223, 235, 250, 0.9);
+  --text-dim: rgba(178, 199, 230, 0.72);
+  --text-faint: rgba(146, 172, 214, 0.5);
+
+  --glow-pink: rgba(213, 139, 232, 0.55);
+  --glow-purple: rgba(122, 75, 168, 0.55);
+  --glow-blue: rgba(110, 201, 232, 0.5);
+  --glow-gold: rgba(246, 212, 143, 0.5);
 
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
   --font-body: "Manrope", system-ui, sans-serif;
@@ -44,7 +52,7 @@ html, body, #root {
 }
 
 ::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-thumb { background: rgba(167, 139, 250, 0.25); border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: rgba(122, 75, 168, 0.25); border-radius: 2px; }
 ::-webkit-scrollbar-track { background: transparent; }
 
 /* ─── Typography helpers ─────────────────────────────────────────────────── */
@@ -78,7 +86,7 @@ html, body, #root {
   text-transform: uppercase;
   color: var(--text-bright);
   background:
-    linear-gradient(135deg, rgba(240, 122, 200, 0.14), rgba(139, 92, 246, 0.10));
+    linear-gradient(135deg, rgba(213, 139, 232, 0.14), rgba(122, 75, 168, 0.10));
   border: 1px solid var(--rim);
   clip-path: polygon(
     12px 0%, 100% 0%, 100% calc(100% - 12px),
@@ -86,19 +94,19 @@ html, body, #root {
   );
   cursor: pointer;
   transition: all 0.18s ease;
-  box-shadow: inset 0 0 14px rgba(240, 122, 200, 0.12);
+  box-shadow: inset 0 0 14px rgba(213, 139, 232, 0.12);
 }
 .hud-btn:hover {
-  background: linear-gradient(135deg, rgba(247, 143, 210, 0.4), rgba(139, 92, 246, 0.22));
-  box-shadow: inset 0 0 20px rgba(240, 122, 200, 0.25), 0 0 22px var(--rim-glow);
+  background: linear-gradient(135deg, rgba(213, 139, 232, 0.4), rgba(122, 75, 168, 0.22));
+  box-shadow: inset 0 0 20px rgba(213, 139, 232, 0.25), 0 0 22px var(--rim-glow);
   text-shadow: 0 0 8px var(--rim-glow);
 }
 .hud-btn:active { transform: scale(0.97); }
 
 .hud-btn.purple { --rim: var(--purple-soft); --rim-glow: var(--glow-purple); }
 .hud-btn.ghost {
-  --rim: rgba(167, 139, 250, 0.35);
-  background: rgba(139, 92, 246, 0.06);
+  --rim: rgba(122, 75, 168, 0.35);
+  background: rgba(122, 75, 168, 0.06);
   color: var(--text-dim);
 }
 .hud-btn.ghost:hover { color: var(--text-main); }
@@ -126,16 +134,16 @@ html, body, #root {
 .hud-panel {
   position: relative;
   background: var(--bg-panel);
-  border: 1px solid rgba(247, 143, 210, 0.4);
+  border: 1px solid rgba(213, 139, 232, 0.4);
   clip-path: polygon(
     18px 0%, 100% 0%, 100% calc(100% - 18px),
     calc(100% - 18px) 100%, 0% 100%, 0% 18px
   );
   backdrop-filter: blur(12px);
-  box-shadow: inset 0 0 30px rgba(139, 92, 246, 0.08);
+  box-shadow: inset 0 0 30px rgba(122, 75, 168, 0.08);
   padding: 22px;
 }
-.hud-panel.purple { border-color: rgba(167, 139, 250, 0.3); }
+.hud-panel.purple { border-color: rgba(122, 75, 168, 0.3); }
 
 /* corner brackets */
 .hud-corners::before,
@@ -198,7 +206,7 @@ html, body, #root {
   font-size: 9px;
   letter-spacing: 0.16em;
   color: var(--text-faint);
-  border: 1px solid rgba(167, 139, 250, 0.18);
+  border: 1px solid rgba(122, 75, 168, 0.18);
   padding: 6px 12px;
   border-radius: 999px;
   background: rgba(20, 16, 33, 0.6);
@@ -232,8 +240,8 @@ html, body, #root {
   inset: 0;
   overflow-y: auto;
   background:
-    radial-gradient(1200px 800px at 70% -10%, rgba(139, 92, 246, 0.14), transparent 60%),
-    radial-gradient(900px 700px at 10% 110%, rgba(240, 122, 200, 0.10), transparent 60%),
+    radial-gradient(1200px 800px at 70% -10%, rgba(122, 75, 168, 0.14), transparent 60%),
+    radial-gradient(900px 700px at 10% 110%, rgba(213, 139, 232, 0.10), transparent 60%),
     var(--bg-void);
 }
 
@@ -248,7 +256,7 @@ html, body, #root {
 /* progress track */
 .bar-track {
   height: 5px;
-  background: rgba(167, 139, 250, 0.14);
+  background: rgba(122, 75, 168, 0.14);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -285,7 +293,7 @@ html, body, #root {
     calc(100% - 14px) 100%, 0% 100%, 0% 14px
   );
   backdrop-filter: blur(12px);
-  box-shadow: 0 0 30px rgba(157, 116, 247, 0.15);
+  box-shadow: 0 0 30px rgba(122, 75, 168, 0.15);
 }
 .side-item {
   display: flex;
@@ -312,21 +320,21 @@ html, body, #root {
 }
 .side-item:hover {
   color: var(--text-bright);
-  background: rgba(139, 92, 246, 0.1);
+  background: rgba(122, 75, 168, 0.1);
 }
 .side-item.active {
   color: var(--pink-soft);
-  background: rgba(240, 122, 200, 0.12);
-  border-color: rgba(240, 122, 200, 0.45);
-  box-shadow: inset 0 0 14px rgba(240, 122, 200, 0.12), 0 0 16px rgba(240, 122, 200, 0.18);
+  background: rgba(213, 139, 232, 0.12);
+  border-color: rgba(213, 139, 232, 0.45);
+  box-shadow: inset 0 0 14px rgba(213, 139, 232, 0.12), 0 0 16px rgba(213, 139, 232, 0.18);
   text-shadow: 0 0 8px var(--glow-pink);
 }
 
 /* pulse animation for portal ring */
 @keyframes pulse-ring {
-  0%   { box-shadow: 0 0 0 0 rgba(240, 122, 200, 0.4); }
-  70%  { box-shadow: 0 0 0 14px rgba(240, 122, 200, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(240, 122, 200, 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(213, 139, 232, 0.4); }
+  70%  { box-shadow: 0 0 0 14px rgba(213, 139, 232, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(213, 139, 232, 0); }
 }
 .portal-dot {
   width: 10px; height: 10px;

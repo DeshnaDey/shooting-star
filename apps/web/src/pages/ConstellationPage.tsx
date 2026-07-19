@@ -77,8 +77,8 @@ function PlusStar({ position, onClick }: { position: [number, number, number]; o
   useFrame(({ clock }) => {
     if (ref.current) ref.current.rotation.z = Math.sin(clock.elapsedTime * 0.5) * 0.08;
   });
-  const c = hovered ? "#f9bce2" : "#b79cfb";
-  const glowTex = useMemo(() => makeGlowTexture("#b79cfb"), []);
+  const c = hovered ? "#e3b3f0" : "#9d6fc8";
+  const glowTex = useMemo(() => makeGlowTexture("#9d6fc8"), []);
   return (
     <group ref={ref} position={position}>
       {/* soft halo so the plus reads against the starfield */}
@@ -118,6 +118,48 @@ function PlusStar({ position, onClick }: { position: [number, number, number]; o
   );
 }
 
+// ─── Galaxy streaks — faint stretched nebula bands far behind the stars ─────
+function NebulaStreaks() {
+  const group = useRef<THREE.Group>(null);
+  const streaks = useMemo(
+    () => [
+      // overlapping bands in different hues so the cloud blends multi-color
+      { pos: [-9, 4, -20] as const, scale: [34, 6, 1] as const, rot: 0.5, color: "#7a4ba8", opacity: 0.18 },
+      { pos: [-6, 5, -19] as const, scale: [22, 4, 1] as const, rot: 0.6, color: "#e05fb0", opacity: 0.12 }, // magenta bloom
+      { pos: [11, -3, -22] as const, scale: [40, 7, 1] as const, rot: -0.35, color: "#6ec9e8", opacity: 0.12 },
+      { pos: [13, -1, -21] as const, scale: [24, 4.5, 1] as const, rot: -0.3, color: "#3fd6c0", opacity: 0.1 }, // teal
+      { pos: [2, 7, -24] as const, scale: [30, 5, 1] as const, rot: 0.9, color: "#d58be8", opacity: 0.13 },
+      { pos: [-4, -6, -18] as const, scale: [26, 4.5, 1] as const, rot: -0.7, color: "#9d6fc8", opacity: 0.12 },
+      { pos: [-2, -7, -17] as const, scale: [18, 3.4, 1] as const, rot: -0.9, color: "#f6d48f", opacity: 0.09 }, // warm gold wisp
+      { pos: [7, 2, -26] as const, scale: [44, 8, 1] as const, rot: 0.15, color: "#a3dcf0", opacity: 0.08 },
+      { pos: [5, -5, -23] as const, scale: [28, 5, 1] as const, rot: 0.4, color: "#b96fd0", opacity: 0.1 },
+    ],
+    []
+  );
+  const textures = useMemo(() => streaks.map((s) => makeGlowTexture(s.color)), [streaks]);
+
+  useFrame(({ clock }) => {
+    if (group.current) group.current.rotation.z = Math.sin(clock.elapsedTime * 0.015) * 0.06;
+  });
+
+  return (
+    <group ref={group}>
+      {streaks.map((s, i) => (
+        <sprite key={i} position={s.pos} scale={s.scale}>
+          <spriteMaterial
+            map={textures[i]}
+            transparent
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+            opacity={s.opacity}
+            rotation={s.rot}
+          />
+        </sprite>
+      ))}
+    </group>
+  );
+}
+
 // slow ambient drift
 function DriftGroup({ children }: { children: React.ReactNode }) {
   const ref = useRef<THREE.Group>(null);
@@ -151,7 +193,7 @@ function AddTopicModal({
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 60, display: "grid", placeItems: "center",
-      background: "rgba(11,8,23,0.75)", backdropFilter: "blur(6px)",
+      background: "rgba(8,20,40,0.75)", backdropFilter: "blur(6px)",
     }} onClick={busy ? undefined : onClose}>
       <div onClick={(e) => e.stopPropagation()} className="zoom-in" style={{ width: 380 }}>
         <HudPanel>
@@ -172,7 +214,7 @@ function AddTopicModal({
             style={{
               width: "100%", padding: "11px 14px", marginBottom: 14, boxSizing: "border-box",
               fontFamily: "var(--font-body)", fontSize: 14, color: "var(--text-bright)",
-              background: "rgba(139,92,246,0.08)", border: "1px solid rgba(167,139,250,0.3)",
+              background: "rgba(122,75,168,0.08)", border: "1px solid rgba(122,75,168,0.3)",
               outline: "none",
               clipPath: "polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px)",
             }}
@@ -225,15 +267,17 @@ export default function ConstellationPage() {
     <>
       <div className="scene-root">
         <Canvas camera={{ position: [0, 2, 14], fov: 55 }} dpr={[1, 2]}>
-          <color attach="background" args={["#191228"]} />
-          <fog attach="fog" args={["#191228", 22, 46]} />
+          <color attach="background" args={["#0b1c3b"]} />
+          <fog attach="fog" args={["#0b1c3b", 22, 46]} />
           <ambientLight intensity={0.5} />
-          <pointLight position={[0, 6, 8]} intensity={40} color="#f2a8d8" />
-          <pointLight position={[-8, -4, -6]} intensity={30} color="#8b5cf6" />
+          <pointLight position={[0, 6, 8]} intensity={40} color="#d58be8" />
+          <pointLight position={[-8, -4, -6]} intensity={30} color="#7a4ba8" />
 
+          <NebulaStreaks />
           <Stars radius={70} depth={40} count={4000} factor={3} saturation={0.4} fade speed={0.6} />
-          <Sparkles count={110} scale={26} size={2.2} speed={0.25} color="#f2a8d8" opacity={0.5} />
-          <Sparkles count={80} scale={30} size={1.6} speed={0.18} color="#a78bfa" opacity={0.4} />
+          <Sparkles count={70} scale={26} size={2.2} speed={0.25} color="#d58be8" opacity={0.5} />
+          <Sparkles count={60} scale={30} size={1.6} speed={0.18} color="#6ec9e8" opacity={0.4} />
+          <Sparkles count={40} scale={28} size={1.8} speed={0.2} color="#f6d48f" opacity={0.35} />
 
           <DriftGroup>
             {edges.map((e, i) => (

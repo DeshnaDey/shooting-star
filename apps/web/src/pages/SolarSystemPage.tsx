@@ -33,7 +33,7 @@ function Sun({ topic }: { topic: ApiTopic }) {
       </sprite>
       <mesh ref={ref}>
         <sphereGeometry args={[1.5, 48, 48]} />
-        <meshStandardMaterial color="#fff4fb" emissive={color} emissiveIntensity={2.4} toneMapped={false} />
+        <meshStandardMaterial color="#f4fbff" emissive={color} emissiveIntensity={2.4} toneMapped={false} />
       </mesh>
       <pointLight intensity={120} distance={40} color={color} />
     </group>
@@ -52,7 +52,7 @@ function OrbitRing({ radius }: { radius: number }) {
   }, [radius]);
   return (
     <lineLoop geometry={geom}>
-      <lineBasicMaterial color="#a78bfa" transparent opacity={0.18} />
+      <lineBasicMaterial color="#9d6fc8" transparent opacity={0.18} />
     </lineLoop>
   );
 }
@@ -179,12 +179,12 @@ export default function SolarSystemPage() {
     <>
       <div className="scene-root">
         <Canvas camera={{ position: [0, 9, 15], fov: 55 }} dpr={[1, 2]}>
-          <color attach="background" args={["#191228"]} />
-          <fog attach="fog" args={["#191228", 26, 55]} />
+          <color attach="background" args={["#0b1c3b"]} />
+          <fog attach="fog" args={["#0b1c3b", 26, 55]} />
           <ambientLight intensity={0.25} />
 
           <Stars radius={70} depth={40} count={3500} factor={3} saturation={0.4} fade speed={0.5} />
-          <Sparkles count={90} scale={30} size={1.8} speed={0.2} color="#f2a8d8" opacity={0.4} />
+          <Sparkles count={90} scale={30} size={1.8} speed={0.2} color="#d58be8" opacity={0.4} />
 
           <Sun topic={topic} />
           {topic.subtopics.map((s, i) => (
@@ -259,8 +259,8 @@ export default function SolarSystemPage() {
                         flex: 1, padding: "7px 4px", cursor: "pointer",
                         fontFamily: "var(--font-mono)", fontSize: 8, letterSpacing: "0.12em",
                         color: mode === m.id ? "var(--white-core)" : "var(--text-dim)",
-                        background: mode === m.id ? "rgba(240,122,200,0.18)" : "rgba(139,92,246,0.06)",
-                        border: `1px solid ${mode === m.id ? "var(--pink)" : "rgba(167,139,250,0.2)"}`,
+                        background: mode === m.id ? "rgba(213,139,232,0.18)" : "rgba(122,75,168,0.06)",
+                        border: `1px solid ${mode === m.id ? "var(--pink)" : "rgba(122,75,168,0.2)"}`,
                         clipPath: "polygon(6px 0%, 100% 0%, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0% 100%, 0% 6px)",
                       }}>
                       {m.label}
@@ -276,8 +276,8 @@ export default function SolarSystemPage() {
                         padding: "6px 12px", cursor: "pointer",
                         fontFamily: "var(--font-mono)", fontSize: 9,
                         color: numQuestions === n ? "var(--white-core)" : "var(--text-dim)",
-                        background: numQuestions === n ? "rgba(167,139,250,0.2)" : "rgba(139,92,246,0.06)",
-                        border: `1px solid ${numQuestions === n ? "var(--purple-soft)" : "rgba(167,139,250,0.2)"}`,
+                        background: numQuestions === n ? "rgba(122,75,168,0.2)" : "rgba(122,75,168,0.06)",
+                        border: `1px solid ${numQuestions === n ? "var(--purple-soft)" : "rgba(122,75,168,0.2)"}`,
                         clipPath: "polygon(5px 0%, 100% 0%, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0% 100%, 0% 5px)",
                       }}>
                       {n}Q
@@ -289,8 +289,8 @@ export default function SolarSystemPage() {
                       padding: "6px 12px", cursor: "pointer",
                       fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.12em",
                       color: timed ? "var(--white-core)" : "var(--text-dim)",
-                      background: timed ? "rgba(240,122,200,0.2)" : "rgba(139,92,246,0.06)",
-                      border: `1px solid ${timed ? "var(--pink)" : "rgba(167,139,250,0.2)"}`,
+                      background: timed ? "rgba(213,139,232,0.2)" : "rgba(122,75,168,0.06)",
+                      border: `1px solid ${timed ? "var(--pink)" : "rgba(122,75,168,0.2)"}`,
                       clipPath: "polygon(5px 0%, 100% 0%, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0% 100%, 0% 5px)",
                     }}>
                     ⏱ TIMED {timed ? "ON" : "OFF"}

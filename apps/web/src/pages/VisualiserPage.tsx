@@ -13,18 +13,18 @@ function ScoreDial({ score }: { score: number }) {
   const R = 52, C = 2 * Math.PI * R;
   return (
     <svg width="140" height="140" viewBox="0 0 140 140">
-      <circle cx="70" cy="70" r={R} fill="none" stroke="rgba(167,139,250,0.15)" strokeWidth="8" />
+      <circle cx="70" cy="70" r={R} fill="none" stroke="rgba(122,75,168,0.15)" strokeWidth="8" />
       <circle
         cx="70" cy="70" r={R} fill="none"
         stroke="url(#scoreGrad)" strokeWidth="8" strokeLinecap="round"
         strokeDasharray={`${(score / 100) * C} ${C}`}
         transform="rotate(-90 70 70)"
-        style={{ filter: "drop-shadow(0 0 6px rgba(240,122,200,0.6))" }}
+        style={{ filter: "drop-shadow(0 0 6px rgba(213,139,232,0.6))" }}
       />
       <defs>
         <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#8b5cf6" />
-          <stop offset="100%" stopColor="#f07ac8" />
+          <stop offset="0%" stopColor="#7a4ba8" />
+          <stop offset="100%" stopColor="#6ec9e8" />
         </linearGradient>
       </defs>
       <text x="70" y="66" textAnchor="middle" fill="var(--white-core)"
@@ -169,18 +169,18 @@ export default function VisualiserPage() {
             <div style={{ height: 240, marginTop: 14 }}>
               <ResponsiveContainer>
                 <BarChart data={chartData} margin={{ top: 6, right: 8, left: -18, bottom: 0 }}>
-                  <XAxis dataKey="name" tick={{ fill: "rgba(196,181,253,0.55)", fontSize: 10, fontFamily: "JetBrains Mono" }} axisLine={false} tickLine={false} />
-                  <YAxis domain={[0, 100]} tick={{ fill: "rgba(196,181,253,0.4)", fontSize: 10, fontFamily: "JetBrains Mono" }} axisLine={false} tickLine={false} />
+                  <XAxis dataKey="name" tick={{ fill: "rgba(163,220,240,0.55)", fontSize: 10, fontFamily: "JetBrains Mono" }} axisLine={false} tickLine={false} />
+                  <YAxis domain={[0, 100]} tick={{ fill: "rgba(163,220,240,0.4)", fontSize: 10, fontFamily: "JetBrains Mono" }} axisLine={false} tickLine={false} />
                   <Tooltip
-                    cursor={{ fill: "rgba(139,92,246,0.08)" }}
+                    cursor={{ fill: "rgba(122,75,168,0.08)" }}
                     contentStyle={{
-                      background: "rgba(24,17,42,0.95)", border: "1px solid rgba(240,122,200,0.3)",
-                      fontFamily: "JetBrains Mono", fontSize: 11, color: "#fff4fb",
+                      background: "rgba(14,30,60,0.95)", border: "1px solid rgba(213,139,232,0.3)",
+                      fontFamily: "JetBrains Mono", fontSize: 11, color: "#f4fbff",
                     }}
                   />
                   <Bar dataKey="accuracy" radius={[4, 4, 0, 0]}>
                     {chartData.map((d, i) => (
-                      <Cell key={i} fill={d.weak ? "#f07ac8" : "rgba(167,139,250,0.55)"} />
+                      <Cell key={i} fill={d.weak ? "#d58be8" : "rgba(122,75,168,0.55)"} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -192,10 +192,10 @@ export default function VisualiserPage() {
             <div style={{ height: 240, marginTop: 14 }}>
               <ResponsiveContainer>
                 <RadarChart data={radarData} outerRadius="72%">
-                  <PolarGrid stroke="rgba(167,139,250,0.18)" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: "rgba(196,181,253,0.55)", fontSize: 9, fontFamily: "JetBrains Mono" }} />
+                  <PolarGrid stroke="rgba(122,75,168,0.18)" />
+                  <PolarAngleAxis dataKey="subject" tick={{ fill: "rgba(163,220,240,0.55)", fontSize: 9, fontFamily: "JetBrains Mono" }} />
                   <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
-                  <Radar dataKey="mastery" stroke="#f07ac8" fill="#f07ac8" fillOpacity={0.28} />
+                  <Radar dataKey="mastery" stroke="#d58be8" fill="#d58be8" fillOpacity={0.28} />
                 </RadarChart>
               </ResponsiveContainer>
             </div>
@@ -239,7 +239,7 @@ export default function VisualiserPage() {
               {analysis.answers.map((a) => (
                 <div key={a.questionId} style={{
                   padding: "10px 14px",
-                  background: "rgba(11,8,23,0.55)",
+                  background: "rgba(8,20,40,0.55)",
                   borderLeft: `2px solid ${a.correct ? "rgba(140,220,170,0.6)" : "var(--pink)"}`,
                 }}>
                   <p style={{ fontSize: 12, color: "var(--text-bright)", marginBottom: 3 }}>{a.prompt}</p>

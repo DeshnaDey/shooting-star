@@ -171,10 +171,10 @@ export default function TestPage() {
                   style={{
                     textAlign: "left", padding: "13px 18px", cursor: "pointer",
                     fontFamily: "var(--font-body)", fontSize: 14, color: picked ? "var(--white-core)" : "var(--text-main)",
-                    background: picked ? "rgba(240,122,200,0.18)" : "rgba(139,92,246,0.06)",
-                    border: `1px solid ${picked ? "var(--pink)" : "rgba(167,139,250,0.22)"}`,
+                    background: picked ? "rgba(213,139,232,0.18)" : "rgba(122,75,168,0.06)",
+                    border: `1px solid ${picked ? "var(--pink)" : "rgba(122,75,168,0.22)"}`,
                     clipPath: "polygon(10px 0%, 100% 0%, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0% 100%, 0% 10px)",
-                    boxShadow: picked ? "0 0 18px rgba(240,122,200,0.25)" : "none",
+                    boxShadow: picked ? "0 0 18px rgba(213,139,232,0.25)" : "none",
                     transition: "all 0.15s",
                   }}
                 >
@@ -198,8 +198,8 @@ export default function TestPage() {
             style={{
               width: "100%", resize: "vertical", padding: 16,
               fontFamily: "var(--font-body)", fontSize: 14, lineHeight: 1.6,
-              color: "var(--text-bright)", background: "rgba(139,92,246,0.06)",
-              border: "1px solid rgba(167,139,250,0.25)", outline: "none",
+              color: "var(--text-bright)", background: "rgba(122,75,168,0.06)",
+              border: "1px solid rgba(122,75,168,0.25)", outline: "none",
               clipPath: "polygon(12px 0%, 100% 0%, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0% 100%, 0% 12px)",
             }}
           />
@@ -213,7 +213,7 @@ export default function TestPage() {
               style={{
                 minHeight: 140, display: "grid", placeItems: "center", cursor: "pointer",
                 padding: 24, textAlign: "center",
-                background: flipped ? "rgba(167,139,250,0.10)" : "rgba(240,122,200,0.07)",
+                background: flipped ? "rgba(122,75,168,0.10)" : "rgba(213,139,232,0.07)",
                 border: `1px solid ${flipped ? "var(--purple-soft)" : "var(--pink)"}`,
                 clipPath: "polygon(16px 0%, 100% 0%, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0% 100%, 0% 16px)",
               }}
