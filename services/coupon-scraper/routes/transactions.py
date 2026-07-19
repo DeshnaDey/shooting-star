@@ -7,7 +7,7 @@ router = APIRouter(tags=["transactions"])
 
 
 class RedeemRequest(BaseModel):
-    user_id: str
+    user_id: int
     reward_item_id: int
 
 
@@ -86,7 +86,7 @@ def redeem(req: RedeemRequest, db: Session = Depends(get_db)):
 
 
 @router.get("/users/{user_id}")
-def get_user(user_id: str, db: Session = Depends(get_db)):
+def get_user(user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).get(user_id)
     if not user:
         raise HTTPException(404, "user not found")
@@ -94,7 +94,7 @@ def get_user(user_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/users/{user_id}/redemptions")
-def get_user_redemptions(user_id: str, db: Session = Depends(get_db)):
+def get_user_redemptions(user_id: int, db: Session = Depends(get_db)):
     """Redemption history, reconstructed from the points ledger (the source
     of truth) joined back to what was claimed - this is what should back the
     'REDEEMED' / 'COUPON CODE' state in ExchangePage.tsx."""

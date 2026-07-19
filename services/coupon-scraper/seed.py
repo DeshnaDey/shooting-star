@@ -10,8 +10,8 @@ from database import SessionLocal, User, init_db
 init_db()
 db = SessionLocal()
 
-if not db.query(User).filter(User.id == "1").first():
-    db.add(User(id="1", name="Demo User", kp_balance_cached=1380))
+if not db.query(User).filter(User.id == 1).first():
+    db.add(User(id=1, name="Demo User", kp_balance_cached=1380))
     db.commit()
     print("Seeded demo user (id=1, 1380 KP)")
 else:

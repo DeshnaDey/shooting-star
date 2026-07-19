@@ -58,7 +58,7 @@ class User(Base):
     something this service should paper over by auto-creating a row."""
     __tablename__ = "users"
 
-    id = Column(String, primary_key=True)
+    id = Column(Integer, primary_key=True)
     email = Column(String, nullable=True)
     name = Column(String, nullable=True)
     kp_balance_cached = Column(Integer, nullable=False, default=0)
@@ -72,7 +72,7 @@ class PointsLedgerEntry(Base):
     __tablename__ = "points_ledger"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     delta = Column(Integer, nullable=False)          # negative for redemption debits
     reason = Column(String, nullable=False)
     ref_type = Column(String, nullable=False)         # e.g. "reward_redemption"
