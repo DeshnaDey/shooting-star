@@ -8,88 +8,90 @@ See /docs/PROMPT.md, section 'Points & Rewards Exchange'.
 
 ---
 
-## Current status (implementation notes)
+## How this maps to docs/PROMPT.md
 
-> **Architecture note:** the current code in this folder runs the scraper
-> in-process (on API startup + an in-process timer via APScheduler), which
-> does **not** yet match the cron/Celery-beat design above. This needs to be
-> split into two pieces: a standalone scrape job (cron/Celery beat) that
-> writes to Postgres, and this API which only reads from that table. Flagging
-> so it gets fixed before this is considered done — don't build further on
-> top of the in-process scheduler.
+- **2.7 Points system**: implemented as an append-only `points_ledger` table.
+  Redemption only ever INSERTs a debit row — never edits or deletes existing
+  ledger rows. `users.kp_balance_cached` is kept in sync in the same
+  transaction as a read optimization, not the source of truth.
+- **2.8 Rewards Exchange**: `reward_items` is the catalog (what a user browses
+  and redeems, kp_cost etc.); `coupon_codes` is the pool of actual codes
+  under each `reward_item`. Redeeming claims and marks used exactly one code
+  from that pool (`SELECT ... FOR UPDATE SKIP LOCKED` on Postgres, so two
+  concurrent redemptions can't claim the same code). A reward item with zero
+  currently-valid codes shows as out-of-stock in the catalog rather than
+  disappearing.
+- **2.9 Coupon scraper**: `scraper/runner.py` is the standalone entrypoint,
+  meant to run via cron/Celery beat — **not** imported into `main.py`. The
+  API process only reads. Adapters respect `robots.txt` (fails closed if it
+  can't be read), rate-limit per domain, and identify via
+  `SCRAPER_USER_AGENT` — see `scraper/sources/base.py`.
 
-### What this replaces in the frontend
+## Scheduling the scraper
 
-`ExchangePage.tsx` currently hardcodes `REWARDS` and `KP_BALANCE`, and shows the
-same fake code (`STAR-7F3K-9Q`) for every redemption via local `useState`. This
-backend makes all of that real:
+Not wired into infra/ yet since that wasn't specified. Options:
 
-| Was (frontend mock)              | Now (this backend)                          |
-|-----------------------------------|----------------------------------------------|
-| `const REWARDS = [...]` hardcoded | `GET /coupons` - live scraped, filtered      |
-| `const KP_BALANCE = 1380`         | `GET /users/1` - real persisted balance      |
-| `setRedeemed(...)` (local state)  | `POST /redeem` - real DB transaction         |
-| Always shows `STAR-7F3K-9Q`       | Returns the coupon's actual scraped code     |
-| No persistence                    | `GET /users/1/redemptions` - real history    |
+```bash
+# cron (every 30 min)
+*/30 * * * * cd /path/to/services/coupon-scraper && /path/to/venv/bin/python -m scraper.runner
 
-### Setup
+# Celery beat (if the project's Celery/Redis setup from docs/PROMPT.md
+# section 3 is already running):
+#   from scraper.runner import run_scrape
+#   @celery_app.task
+#   def scrape_coupons():
+#       run_scrape()
+#   beat_schedule = {"scrape-coupons": {"task": "scrape_coupons", "schedule": 1800.0}}
+```
+
+## Setup
 
 ```bash
 pip install -r requirements.txt
-python seed.py              # creates placeholder demo user (id=1, 1380 KP)
+python seed.py               # local dev only - creates a demo user (real users come from apps/api)
+python -m scraper.runner     # one-off scrape run, populates reward_items + coupon_codes
 uvicorn main:app --reload --port 8000
 ```
 
-### Testing without live network
+## Testing without live network / without a real users table yet
 
 `scraper/sources/example_source.py` reads `scraper/fixtures/sample_coupons.html`
-by default (`USE_LIVE = False`), so the whole pipeline — parsing, expiry
-detection, dedup, the API, the transaction flow — is testable with zero
-external dependencies. Run `python -m scraper.runner` to scrape once and
-inspect the DB directly.
+by default (`USE_LIVE = False`), so the full pipeline (parsing, robots.txt
+logic, expiry/status handling, dedup, ledger, atomic redemption) is testable
+with zero external dependencies and no dependency on apps/api existing yet.
+Falls back to local SQLite if `DATABASE_URL` isn't set (note: SQLite doesn't
+support row locking, so the `FOR UPDATE SKIP LOCKED` concurrency guard is
+Postgres-only — fine for local single-request testing, required for
+production).
 
-### Pointing at a real coupon site
+## Pointing at a real coupon site
 
-1. Open the real site's deals page in devtools, find the repeating container
-   for each coupon.
-2. In `scraper/sources/example_source.py`: set `FETCH_URL` to the real URL,
-   set `USE_LIVE = True`, and rewrite the CSS selectors in `parse_html()` to
+1. Check for an official affiliate/coupon API first — docs/PROMPT.md 2.9
+   explicitly prefers this over scraping wherever one exists.
+2. If scraping is genuinely necessary: check that site's `robots.txt` and
+   terms of service allow it. The adapter will refuse to fetch (raises
+   `PermissionError`) if robots.txt disallows it or can't be read at all —
+   this is intentional, don't bypass it.
+3. In `scraper/sources/example_source.py`: set `FETCH_URL` to the real URL,
+   set `USE_LIVE = True`, rewrite the CSS selectors in `parse_html()` to
    match that page's actual markup.
-3. **If the site renders coupons via JavaScript** (most do), `httpx` won't see
-   them — swap `fetch_html()` in `sources/base.py` for Playwright.
-   `pip install playwright && playwright install chromium`.
-4. Register the new adapter instance in `scraper/runner.py`'s `SOURCES` list.
-5. **Check the site's robots.txt / terms of service** before scraping it for
-   real.
+4. JS-rendered sites need Playwright instead of `httpx` — see the docstring
+   in `example_source.py`.
+5. Register the adapter instance in `scraper/runner.py`'s `SOURCES` list.
 
-### How non-expiry is determined (`Coupon.status` in `database.py`)
+## Users table
 
-- `expired` — page showed an explicit expiry date and it's passed
-- `unavailable` — page marked it "EXPIRED"/"SOLD OUT" in text, or manually disabled
-- `needs_reverification` — no expiry date shown, and not re-scraped within
-  `STALE_AFTER_DAYS` (14, tune per-source)
-- `active` — everything else
+This service does **not** create or manage users — `database.py`'s `User`
+model is a minimal read/write mirror of the shared table apps/api owns
+(auth, profile, level, streak per docs/PROMPT.md 2.1). If `POST /redeem` is
+called with a `user_id` that doesn't exist yet, it 404s rather than silently
+creating one — that would be the wrong service to do that in.
 
-Status is recomputed on every read, never cached. `/redeem` re-checks status
-server-side even if a client is holding a stale coupon from an old page load.
+## Wiring into ExchangePage.tsx
 
-### Points/users — NOT YET RECONCILED WITH REAL SCHEMA
-
-This service currently uses a placeholder table
-(`coupon_scraper_user_points_placeholder` in `database.py`) instead of a real
-users table, because the actual users/points schema wasn't available when
-this was written. **Check `/docs/PROMPT.md`'s 'Points & Rewards Exchange'
-section and `packages/shared-types` before this goes further** — then point
-`routes/transactions.py` at the real table/columns and delete the placeholder.
-
-### KP pricing
-
-`scraper/runner.py: estimate_kp_cost()` is a placeholder heuristic. Replace
-once there's a real pricing model.
-
-### Wiring into ExchangePage.tsx
-
-Replace hardcoded `REWARDS` with `GET /coupons`, `KP_BALANCE` with
-`GET /users/{id}`, and `handleConfirm()`'s local `setRedeemed` with
-`POST /redeem` — response includes the real `code` to show instead of the
-hardcoded `STAR-7F3K-9Q`.
+- Replace hardcoded `REWARDS` → `GET /coupons` (returns `reward_items` where
+  kind='coupon', with `in_stock`/`stock_count` computed live)
+- Replace `KP_BALANCE` → `GET /users/{id}`
+- Replace `handleConfirm()`'s local `setRedeemed` → `POST /redeem
+  {user_id, reward_item_id}` — response includes the real claimed `code`
+- Replace the in-memory `redeemed` Set → `GET /users/{id}/redemptions`

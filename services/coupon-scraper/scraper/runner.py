@@ -1,14 +1,25 @@
 """
 Runs every registered source adapter and upserts results into the DB.
 
-Call `run_scrape()` directly for a one-off run, or schedule it (see main.py,
-which runs this every 30 min via APScheduler) so listings stay fresh and
-last_verified_at keeps moving - that's what keeps non-expiry status accurate
-for coupons whose source page never states an explicit expiry date.
+This is the standalone entrypoint meant to run on a schedule (cron / Celery
+beat), independent of the API process - see docs/PROMPT.md 2.9. Run directly:
+
+    python -m scraper.runner
+
+Do NOT import run_scrape() into main.py's request-serving process. The API
+should only ever read what this has already written.
+
+Writes into two tables (docs/PROMPT.md section 4):
+  RewardItem  - the catalog offer (created once per brand+title, kp_cost set
+                only on first creation - a re-scrape shouldn't silently
+                change what something costs)
+  CouponCode  - the pool of actual codes under that offer (upserted every run
+                by (reward_item_id, code); status/last_verified_at updated
+                every time so staleness tracking stays accurate)
 """
 from datetime import datetime
-from database import SessionLocal, Coupon
-from scraper.parser import parse_expiry, dedupe_key
+from database import SessionLocal, RewardItem, CouponCode, STATUS_ACTIVE, STATUS_EXPIRED
+from scraper.parser import parse_expiry
 from scraper.sources.example_source import ExampleSource
 
 # Register every source adapter here.
@@ -16,9 +27,9 @@ SOURCES = [
     ExampleSource(),
 ]
 
-# Simple KP pricing heuristic until there's a real economy model:
-# cheaper categories cost less, and it scales mildly with implied discount size.
-# Replace with something smarter once there's real usage data.
+# Simple KP pricing heuristic until points_engine (apps/api) owns real pricing.
+# Only applied when a RewardItem is first created - never overwrites an
+# existing price on re-scrape.
 CATEGORY_BASE_KP = {
     "food": 600,
     "entertainment": 2000,
@@ -34,13 +45,18 @@ def estimate_kp_cost(category: str) -> int:
 
 def run_scrape() -> dict:
     db = SessionLocal()
-    stats = {"seen": 0, "created": 0, "updated": 0, "errors": 0}
+    stats = {"seen": 0, "reward_items_created": 0, "codes_created": 0, "codes_updated": 0, "errors": 0}
     now = datetime.utcnow()
 
     try:
         for source in SOURCES:
             try:
                 raw_coupons = source.fetch()
+            except PermissionError as exc:
+                # robots.txt disallowed this source - not a bug, don't retry-spam it
+                print(f"[scraper] {source.source_name} skipped (robots.txt): {exc}")
+                stats["errors"] += 1
+                continue
             except Exception as exc:  # noqa: BLE001 - one bad source shouldn't kill the run
                 print(f"[scraper] {source.source_name} failed: {exc}")
                 stats["errors"] += 1
@@ -48,38 +64,49 @@ def run_scrape() -> dict:
 
             for raw in raw_coupons:
                 stats["seen"] += 1
-                key = dedupe_key(raw)
-                existing = (
-                    db.query(Coupon)
-                    .filter(Coupon.brand == raw.brand, Coupon.code == raw.code)
+
+                reward_item = (
+                    db.query(RewardItem)
+                    .filter(RewardItem.brand == raw.brand, RewardItem.name == raw.title)
                     .first()
                 )
-                expires_at = parse_expiry(raw.raw_expiry_text)
-
-                if existing:
-                    existing.title = raw.title
-                    existing.detail = raw.detail
-                    existing.category = raw.category
-                    existing.expires_at = expires_at
-                    existing.is_redeemed_out = raw.looks_redeemed_out
-                    existing.last_verified_at = now  # re-scraped = re-verified, even if unchanged
-                    stats["updated"] += 1
-                else:
-                    db.add(Coupon(
-                        brand=raw.brand,
-                        title=raw.title,
+                if not reward_item:
+                    reward_item = RewardItem(
+                        kind="coupon",
+                        name=raw.title,
                         detail=raw.detail,
-                        code=raw.code,
-                        category=raw.category,
                         kp_cost=estimate_kp_cost(raw.category),
-                        source_name=raw.source_name,
-                        source_url=raw.source_url,
+                        brand=raw.brand,
+                        category=raw.category,
+                    )
+                    db.add(reward_item)
+                    db.flush()  # get reward_item.id before creating codes under it
+                    stats["reward_items_created"] += 1
+
+                expires_at = parse_expiry(raw.raw_expiry_text)
+                status = STATUS_EXPIRED if raw.looks_redeemed_out else STATUS_ACTIVE
+
+                existing_code = (
+                    db.query(CouponCode)
+                    .filter(CouponCode.reward_item_id == reward_item.id, CouponCode.code == raw.code)
+                    .first()
+                )
+                if existing_code:
+                    existing_code.status = status
+                    existing_code.expires_at = expires_at
+                    existing_code.last_verified_at = now  # re-scraped = re-verified either way
+                    stats["codes_updated"] += 1
+                else:
+                    db.add(CouponCode(
+                        reward_item_id=reward_item.id,
+                        code=raw.code,
+                        source=raw.source_name,
+                        status=status,
                         expires_at=expires_at,
-                        scraped_at=now,
+                        first_seen_at=now,
                         last_verified_at=now,
-                        is_redeemed_out=raw.looks_redeemed_out,
                     ))
-                    stats["created"] += 1
+                    stats["codes_created"] += 1
 
         db.commit()
     finally:

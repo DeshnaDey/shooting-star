@@ -1,18 +1,17 @@
-"""Run once after first startup: `python seed.py`. Creates a demo user
-matching the KP_BALANCE=1380 currently hardcoded in ExchangePage.tsx, so
-swapping the frontend to real data doesn't change what's on screen.
+"""Run once for local testing: `python seed.py`. Creates a demo user matching
+the KP_BALANCE=1380 currently hardcoded in ExchangePage.tsx.
 
-NOTE: this seeds the local placeholder points table (see database.py). Once
-the real user/points table is confirmed, this script (and the placeholder
-table itself) should be deleted.
+NOTE: in the real system, users are created by apps/api (auth), not here.
+This is purely a local dev convenience so this service is testable in
+isolation before apps/api exists / before the two are wired together.
 """
-from database import SessionLocal, UserPointsPlaceholder, init_db
+from database import SessionLocal, User, init_db
 
 init_db()
 db = SessionLocal()
 
-if not db.query(UserPointsPlaceholder).filter(UserPointsPlaceholder.id == "1").first():
-    db.add(UserPointsPlaceholder(id="1", name="Demo User", kp_balance=1380))
+if not db.query(User).filter(User.id == "1").first():
+    db.add(User(id="1", name="Demo User", kp_balance_cached=1380))
     db.commit()
     print("Seeded demo user (id=1, 1380 KP)")
 else:
