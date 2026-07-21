@@ -235,14 +235,13 @@ html, body, #root {
 }
 
 /* ─── Scrollable page (visualiser) ──────────────────────────────────────── */
+/* Background is transparent so the shared SpaceBackdrop (starfield + nebula
+   band + accent bloom) shows through and the per-page object reads behind. */
 .page-scroll {
   position: fixed;
   inset: 0;
   overflow-y: auto;
-  background:
-    radial-gradient(1200px 800px at 70% -10%, rgba(122, 75, 168, 0.14), transparent 60%),
-    radial-gradient(900px 700px at 10% 110%, rgba(213, 139, 232, 0.10), transparent 60%),
-    var(--bg-void);
+  background: transparent;
 }
 
 /* stat block */
@@ -351,4 +350,370 @@ html, body, #root {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══ Knowledge Arcade ═══════════════════════════════════════════════════════ */
+.arcade-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+}
+.arcade-card {
+  position: relative;
+  text-align: left;
+  padding: 20px 18px;
+  cursor: pointer;
+  background: linear-gradient(150deg, rgba(213,139,232,0.09), rgba(122,75,168,0.05));
+  border: 1px solid rgba(122,75,168,0.28);
+  clip-path: polygon(14px 0%, 100% 0%, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0% 100%, 0% 14px);
+  transition: all 0.18s ease;
+}
+.arcade-card:hover {
+  border-color: var(--pink);
+  box-shadow: inset 0 0 22px rgba(213,139,232,0.14), 0 0 22px var(--glow-pink);
+  transform: translateY(-2px);
+}
+.arcade-card:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+.arcade-card .ac-icon { color: var(--pink-soft); line-height: 0; }
+.arcade-card h3 { font-family: var(--font-display); font-size: 22px; color: var(--text-bright); margin: 8px 0 4px; }
+.arcade-card p { font-size: 12px; line-height: 1.55; color: var(--text-dim); }
+
+.star-chip {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em;
+  padding: 8px 14px; cursor: pointer; color: var(--text-dim);
+  background: rgba(122,75,168,0.08); border: 1px solid rgba(122,75,168,0.25);
+  clip-path: polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px);
+  transition: all 0.15s;
+}
+.star-chip:hover { color: var(--text-main); border-color: var(--purple-soft); }
+.star-chip.active { color: var(--white-core); border-color: var(--pink); background: rgba(213,139,232,0.16); box-shadow: 0 0 14px var(--glow-pink); }
+
+/* Wordle */
+.wordle-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; }
+.wordle-tile {
+  aspect-ratio: 1; display: grid; place-items: center;
+  font-family: var(--font-display); font-size: 26px; font-weight: 500;
+  color: var(--text-bright); text-transform: uppercase;
+  border: 1.5px solid rgba(122,75,168,0.35); background: rgba(122,75,168,0.05);
+  transition: transform 0.15s;
+}
+.wordle-tile.filled { border-color: var(--purple-soft); transform: scale(1.04); }
+.wordle-tile.correct { background: rgba(110,201,232,0.30); border-color: var(--blue); color: var(--white-core); box-shadow: 0 0 12px var(--glow-blue); }
+.wordle-tile.present { background: rgba(246,212,143,0.26); border-color: var(--gold); color: var(--white-core); }
+.wordle-tile.absent  { background: rgba(30,45,75,0.6); border-color: rgba(122,75,168,0.18); color: var(--text-faint); }
+.key {
+  font-family: var(--font-mono); font-size: 11px; padding: 12px 9px; min-width: 26px;
+  cursor: pointer; color: var(--text-main); text-transform: uppercase;
+  background: rgba(122,75,168,0.14); border: 1px solid rgba(122,75,168,0.3); border-radius: 5px;
+  transition: all 0.12s;
+}
+.key:hover { background: rgba(213,139,232,0.2); }
+.key.correct { background: rgba(110,201,232,0.35); border-color: var(--blue); color: var(--white-core); }
+.key.present { background: rgba(246,212,143,0.3); border-color: var(--gold); color: var(--white-core); }
+.key.absent  { background: rgba(20,30,55,0.7); color: var(--text-faint); border-color: transparent; }
+
+/* Spelling Bee hive */
+.bee-hive { position: relative; width: 260px; height: 250px; margin: 0 auto; }
+.bee-cell {
+  position: absolute; width: 78px; height: 88px; display: grid; place-items: center;
+  font-family: var(--font-display); font-size: 30px; font-weight: 600; text-transform: uppercase;
+  color: var(--text-bright); cursor: pointer;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  background: rgba(122,75,168,0.16); transition: transform 0.1s, filter 0.1s;
+}
+.bee-cell:hover { filter: brightness(1.25); }
+.bee-cell:active { transform: scale(0.93); }
+.bee-cell.center { background: linear-gradient(150deg, var(--gold), #e0a94b); color: #2a1c40; }
+
+/* Crossword */
+.xword-grid { display: grid; gap: 2px; background: rgba(122,75,168,0.2); padding: 2px; width: max-content; margin: 0 auto; }
+.xword-cell { position: relative; width: 40px; height: 40px; background: var(--bg-deep); }
+.xword-cell.block { background: transparent; }
+.xword-cell input {
+  width: 100%; height: 100%; text-align: center; text-transform: uppercase;
+  font-family: var(--font-display); font-size: 22px; color: var(--text-bright);
+  background: transparent; border: none; outline: none; caret-color: var(--pink); cursor: pointer;
+}
+.xword-cell.active { box-shadow: inset 0 0 0 2px var(--pink); }
+.xword-cell.inword { background: rgba(213,139,232,0.12); }
+.xword-cell.correct input { color: var(--blue); }
+.xword-cell.wrong input { color: #ff8fb4; }
+.xword-cell.revealed { background: rgba(246,212,143,0.1); }
+.xword-cell.revealed input { color: var(--gold); }
+.xword-num { position: absolute; top: 1px; left: 3px; font-family: var(--font-mono); font-size: 8px; color: var(--text-faint); }
+
+/* Word search / Strands */
+.ws-grid { display: grid; gap: 3px; width: max-content; margin: 0 auto; }
+.ws-cell {
+  width: 34px; height: 34px; display: grid; place-items: center; cursor: pointer;
+  font-family: var(--font-mono); font-size: 15px; color: var(--text-main);
+  background: rgba(122,75,168,0.08); border: 1px solid rgba(122,75,168,0.15); border-radius: 4px;
+  transition: all 0.1s;
+}
+.ws-cell:hover { background: rgba(213,139,232,0.16); }
+.ws-cell.anchor { background: rgba(246,212,143,0.3); border-color: var(--gold); color: var(--white-core); }
+.ws-cell.found { background: rgba(110,201,232,0.22); border-color: var(--blue); color: var(--white-core); }
+
+/* Result / leaderboard modal */
+.arcade-overlay { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: rgba(6,14,30,0.78); backdrop-filter: blur(4px); }
+.lb-row { display: flex; align-items: center; gap: 12px; padding: 9px 14px; border: 1px solid rgba(122,75,168,0.16); margin-bottom: 6px; background: rgba(122,75,168,0.05); }
+.lb-row.you { border-color: var(--pink); background: rgba(213,139,232,0.14); box-shadow: 0 0 16px var(--glow-pink); }
+.lb-rank { font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); width: 26px; }
+.lb-name { flex: 1; font-size: 14px; color: var(--text-bright); }
+.lb-score { font-family: var(--font-mono); font-size: 14px; color: var(--gold); }
+
+/* ═══ Shared space backdrop — starfield · nebula band · accent bloom ═══════ */
+.space-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.sb-base {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(1400px 900px at 72% -12%, rgba(122, 75, 168, 0.20), transparent 62%),
+    radial-gradient(1100px 800px at 8% 112%, rgba(213, 139, 232, 0.12), transparent 60%),
+    linear-gradient(160deg, #0b1c3b 0%, #0a1730 55%, #0b1226 100%);
+}
+
+/* evenly-spread multi-colour nebula band, tilted like the Milky Way reference */
+.sb-nebula {
+  position: absolute;
+  left: -12%;
+  right: -12%;
+  top: 50%;
+  height: 86vh;
+  transform: translateY(-50%) rotate(-11deg);
+  opacity: 1;
+  background:
+    /* broad colour swathes */
+    radial-gradient(30vw 24vh at 6% 52%, rgba(122, 75, 168, 0.40), transparent 72%),
+    radial-gradient(26vw 20vh at 20% 43%, rgba(224, 95, 176, 0.32), transparent 72%),
+    radial-gradient(28vw 22vh at 34% 56%, rgba(213, 139, 232, 0.34), transparent 72%),
+    radial-gradient(26vw 20vh at 48% 45%, rgba(110, 201, 232, 0.30), transparent 72%),
+    radial-gradient(28vw 22vh at 62% 57%, rgba(63, 214, 192, 0.26), transparent 72%),
+    radial-gradient(26vw 20vh at 76% 44%, rgba(157, 111, 200, 0.34), transparent 72%),
+    radial-gradient(28vw 22vh at 90% 54%, rgba(246, 212, 143, 0.24), transparent 72%),
+    /* finer knots for internal structure */
+    radial-gradient(9vw 8vh at 26% 50%, rgba(255, 255, 255, 0.10), transparent 70%),
+    radial-gradient(8vw 7vh at 54% 52%, rgba(255, 255, 255, 0.10), transparent 70%),
+    radial-gradient(10vw 8vh at 70% 50%, rgba(255, 240, 220, 0.08), transparent 70%),
+    /* bright core spine */
+    radial-gradient(60vw 12vh at 50% 50%, rgba(213, 139, 232, 0.16), transparent 75%);
+  filter: blur(3px);
+  animation: sb-nebula-drift 46s ease-in-out infinite;
+}
+@keyframes sb-nebula-drift {
+  0%, 100% { transform: translateY(-50%) rotate(-11deg) scale(1); }
+  50%      { transform: translateY(-53%) rotate(-9deg) scale(1.05); }
+}
+
+/* starfield — a 1px node casting a whole sky of box-shadow stars */
+.sb-stars {
+  position: absolute;
+  top: 0; left: 0;
+  width: 1px; height: 1px;
+  border-radius: 50%;
+  background: transparent;
+  animation: sb-twinkle 5.5s ease-in-out infinite;
+}
+.sb-stars-2 { animation-duration: 8s; animation-delay: 1.5s; opacity: 0.85; }
+@keyframes sb-twinkle {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+
+/* steady accent glow — the page's calm coloured background, fades in on change */
+.sb-bloom {
+  position: absolute;
+  left: 50%;
+  top: 32%;
+  width: 125vw;
+  height: 125vh;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(closest-side,
+    color-mix(in srgb, var(--acc) 34%, transparent) 0%,
+    color-mix(in srgb, var(--acc2) 18%, transparent) 40%,
+    transparent 70%);
+  opacity: 0;
+  animation: sb-bloom-in 0.9s ease-out forwards;
+}
+.sb-bloom-scene { animation: sb-bloom-in-scene 0.9s ease-out forwards; }
+@keyframes sb-bloom-in { to { opacity: 0.55; } }
+@keyframes sb-bloom-in-scene { to { opacity: 0.2; } }
+
+/* navigation colour blob — a "star" that zooms in from the click point and
+   blooms outward, then fades, revealing the destination page. Sits above the
+   scene so it also transitions into the 3D constellation. */
+.nav-bloom {
+  position: fixed;
+  width: 58vmax;
+  height: 58vmax;
+  margin: 0;
+  z-index: 55;
+  pointer-events: none;
+  border-radius: 50%;
+  /* a bright point of light at the core that reads as a spark, dissolving out
+     into the page's accent colour as it expands */
+  background: radial-gradient(closest-side,
+    #ffffff 0%,
+    color-mix(in srgb, var(--acc) 88%, white) 12%,
+    color-mix(in srgb, var(--acc) 72%, transparent) 40%,
+    color-mix(in srgb, var(--acc2) 40%, transparent) 62%,
+    transparent 76%);
+  animation: nav-bloom-zoom 0.92s cubic-bezier(0.22, 0.68, 0.2, 1) forwards;
+}
+/* orb sparks small at the click, expands into a full colour wash, then
+   dissolves — leaving the page's steady coloured background behind */
+@keyframes nav-bloom-zoom {
+  0%   { transform: translate(-50%, -50%) scale(0.012); opacity: 0; }
+  10%  { opacity: 1; }
+  68%  { opacity: 0.9; }
+  100% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; }
+}
+
+/* shooting-star streaks emanating from the click point, radiating outward */
+.nav-stars { position: fixed; inset: 0; z-index: 56; pointer-events: none; }
+.shoot {
+  position: absolute;
+  width: 168px;
+  height: 2px;
+  border-radius: 2px;
+  transform-origin: 0 50%; /* pivot + grow from the click point */
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), #ffffff);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.85);
+  opacity: 0;
+  animation: shoot 0.8s ease-out forwards;
+  animation-delay: var(--d);
+}
+.shoot::after {
+  content: "";
+  position: absolute;
+  right: -3px; top: 50%;
+  width: 5px; height: 5px;
+  margin-top: -2.5px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 12px 3px rgba(255, 255, 255, 0.9);
+}
+@keyframes shoot {
+  0%   { opacity: 0; transform: rotate(var(--ang)) translateX(0) scaleX(0.15); }
+  16%  { opacity: 1; }
+  100% { opacity: 0; transform: rotate(var(--ang)) translateX(var(--dist)) scaleX(1); }
+}
+
+/* ═══ Route content transition ════════════════════════════════════════════ */
+.route-enter { animation: route-in 0.5s cubic-bezier(0.2, 0.8, 0.25, 1) both; }
+@keyframes route-in {
+  0%   { opacity: 0; transform: translateY(14px) scale(0.99); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* themed loader — the page's space object while data is fetching */
+.space-loader {
+  display: grid;
+  place-items: center;
+  gap: 20px;
+  text-align: center;
+}
+.space-loader-orb { width: 132px; height: 132px; animation: loader-breathe 2.4s ease-in-out infinite; }
+@keyframes loader-breathe {
+  0%, 100% { transform: scale(0.94); opacity: 0.85; }
+  50%      { transform: scale(1.04); opacity: 1; }
+}
+
+/* SpaceObject internal motion */
+.so-spin, .so-spin-rev, .so-spin-slow, .so-float { transform-box: view-box; }
+.so-spin { animation: so-spin 18s linear infinite; }
+.so-spin-rev { animation: so-spin 15s linear infinite reverse; }
+.so-spin-slow { animation: so-spin 42s linear infinite; }
+@keyframes so-spin { to { transform: rotate(360deg); } }
+.so-float { animation: so-float 6s ease-in-out infinite; }
+@keyframes so-float {
+  0%, 100% { transform: translateY(-4px) rotate(-2deg); }
+  50%      { transform: translateY(6px) rotate(2deg); }
+}
+.so-pulse, .so-twinkle, .so-rise { transform-box: fill-box; transform-origin: center; }
+.so-pulse { animation: so-pulse 2.6s ease-in-out infinite; }
+@keyframes so-pulse {
+  0%, 100% { opacity: 0.7; transform: scale(0.94); }
+  50%      { opacity: 1; transform: scale(1.06); }
+}
+.so-twinkle { animation: so-twinkle 3s ease-in-out infinite; }
+@keyframes so-twinkle { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+.so-rise { animation: so-rise 2.4s ease-in-out infinite; transform-origin: bottom; }
+@keyframes so-rise { 0%, 100% { transform: scaleY(0.72); } 50% { transform: scaleY(1); } }
+
+/* ═══ Star zoom (Constellation → System) ═══════════════════════════════════ */
+.star-zoom-root { position: fixed; inset: 0; z-index: 100; pointer-events: none; }
+.star-zoom-orb {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 130px; height: 130px;
+  margin: -65px 0 0 -65px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center,
+    #ffffff 0%,
+    color-mix(in srgb, var(--star) 90%, white) 26%,
+    var(--star) 52%,
+    transparent 72%);
+  box-shadow: 0 0 60px 10px var(--star);
+  animation: star-zoom-in 0.72s cubic-bezier(0.5, 0, 0.75, 0.2) forwards;
+}
+@keyframes star-zoom-in {
+  0%   { transform: translate(var(--dx), var(--dy)) scale(0.05); opacity: 0.9; }
+  45%  { opacity: 1; }
+  100% { transform: translate(0, 0) scale(11); opacity: 1; }
+}
+.star-zoom-flash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, #ffffff 0%, var(--star) 42%, transparent 78%);
+  opacity: 0;
+  animation: star-zoom-flash 0.72s ease-in forwards;
+}
+@keyframes star-zoom-flash {
+  0%, 62% { opacity: 0; }
+  100%    { opacity: 1; }
+}
+
+/* ═══ System emerge (arriving via a star zoom) ═════════════════════════════ */
+.emerge-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  pointer-events: none;
+  background: radial-gradient(circle at center, #ffffff 0%, var(--star) 34%, transparent 72%);
+  animation: emerge-fade 0.85s ease-out forwards;
+}
+@keyframes emerge-fade {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ═══ Rainbow haze — a soft, blurred multi-colour glow for lively accents ═══ */
+.rainbow-haze {
+  position: absolute;
+  border-radius: 50%;
+  background: conic-gradient(from 210deg,
+    #e05fb0, #f6b45f, #f6d48f, #3fd6c0, #6ec9e8, #9d6fc8, #d58be8, #e05fb0);
+  filter: blur(46px) saturate(1.15);
+  opacity: 0.5;
+  pointer-events: none;
+  animation: haze-drift 18s ease-in-out infinite;
+}
+@keyframes haze-drift {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  50%      { transform: rotate(24deg) scale(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-nebula, .sb-stars, .sb-bloom, .route-enter, .nav-bloom, .nav-stars, .shoot, .rainbow-haze,
+  .so-spin, .so-spin-rev, .so-spin-slow, .so-float, .so-pulse, .so-twinkle, .so-rise,
+  .star-zoom-orb, .star-zoom-flash, .emerge-flash { animation: none; }
+  .nav-bloom, .nav-stars { display: none; }
+  .sb-bloom { opacity: 0.3; }
 }

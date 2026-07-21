@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Stars, Html, Sparkles } from "@react-three/drei";
 import * as THREE from "three";
 import { api, ApiSubtopic, ApiTopic } from "../lib/api";
 import { planetVisual, starColor } from "../lib/visuals";
 import { makeGlowTexture } from "../components/three/helpers";
+import NebulaField from "../components/three/NebulaField";
+import { EmergeFlash } from "../components/StarTransition";
+import SpaceLoader from "../components/SpaceLoader";
 import { HudButton, HudPanel, MonoLabel, useToast } from "../components/Hud";
 
 type TestMode = "mcq" | "long_answer" | "flashcard";
@@ -115,7 +118,13 @@ function Planet({
 export default function SolarSystemPage() {
   const { starId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const toast = useToast();
+  // colour carried in from the constellation star-zoom, so the scene resolves
+  // out of the same hue the star had
+  const [emergeColor] = useState<string | null>(
+    (location.state as { zoomColor?: string } | null)?.zoomColor ?? null
+  );
 
   const [topic, setTopic] = useState<ApiTopic | null>(null);
   const [loadState, setLoadState] = useState<"loading" | "ok" | "missing" | "offline">("loading");
@@ -155,21 +164,22 @@ export default function SolarSystemPage() {
     }
   }
 
+  if (loadState === "loading") {
+    return (
+      <div className="page-scroll" style={{ display: "grid", placeItems: "center" }}>
+        <SpaceLoader label="CHARTING SYSTEM…" />
+      </div>
+    );
+  }
   if (loadState !== "ok" || !topic) {
     return (
       <div className="page-scroll" style={{ display: "grid", placeItems: "center" }}>
         <HudPanel>
           <MonoLabel>
-            {loadState === "loading" ? "CHARTING SYSTEM…"
-              : loadState === "offline" ? "API OFFLINE — START THE BACKEND"
-              : "UNKNOWN SYSTEM"}
+            {loadState === "offline" ? "API OFFLINE — START THE BACKEND" : "UNKNOWN SYSTEM"}
           </MonoLabel>
-          {loadState !== "loading" && (
-            <>
-              <div style={{ height: 12 }} />
-              <HudButton onClick={() => navigate("/")}>RETURN TO CONSTELLATION</HudButton>
-            </>
-          )}
+          <div style={{ height: 12 }} />
+          <HudButton onClick={() => navigate("/")}>RETURN TO CONSTELLATION</HudButton>
         </HudPanel>
       </div>
     );
@@ -177,12 +187,14 @@ export default function SolarSystemPage() {
 
   return (
     <>
+      {emergeColor && <EmergeFlash color={emergeColor} />}
       <div className="scene-root">
         <Canvas camera={{ position: [0, 9, 15], fov: 55 }} dpr={[1, 2]}>
           <color attach="background" args={["#0b1c3b"]} />
           <fog attach="fog" args={["#0b1c3b", 26, 55]} />
           <ambientLight intensity={0.25} />
 
+          <NebulaField count={26} width={100} tilt={0.22} depth={-36} opacity={0.85} />
           <Stars radius={70} depth={40} count={3500} factor={3} saturation={0.4} fade speed={0.5} />
           <Sparkles count={90} scale={30} size={1.8} speed={0.2} color="#d58be8" opacity={0.4} />
 

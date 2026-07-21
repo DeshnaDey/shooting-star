@@ -14,6 +14,18 @@ const ITEMS = [
     ),
   },
   {
+    to: "/arcade", label: "ARCADE",
+    match: (p: string) => p.startsWith("/arcade"),
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <rect x="2" y="6" width="14" height="8" rx="3" stroke="currentColor" strokeWidth="1.1" />
+        <path d="M5.5 9 V11 M4.5 10 H6.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
+        <circle cx="12" cy="9.4" r="0.9" fill="currentColor" />
+        <circle cx="13.4" cy="11" r="0.9" fill="currentColor" />
+      </svg>
+    ),
+  },
+  {
     to: "/trade", label: "TRADECENTER",
     match: (p: string) => p.startsWith("/trade"),
     icon: (

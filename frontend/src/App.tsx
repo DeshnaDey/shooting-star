@@ -5,9 +5,12 @@ import TestPage from "./pages/TestPage";
 import VisualiserPage from "./pages/VisualiserPage";
 import ConceptPage from "./pages/ConceptPage";
 import TradecenterPage from "./pages/TradecenterPage";
+import ArcadePage from "./pages/ArcadePage";
 import ProfilePage from "./pages/ProfilePage";
 import LoginPage from "./pages/LoginPage";
 import Sidebar from "./components/Sidebar";
+import SpaceBackdrop from "./components/SpaceBackdrop";
+import PageTransition from "./components/PageTransition";
 import { ToastProvider } from "./components/Hud";
 import { auth } from "./lib/api";
 
@@ -21,17 +24,21 @@ function Chrome() {
   const showSidebar = pathname !== "/login" && auth.isLoggedIn();
   return (
     <>
+      <SpaceBackdrop />
       {showSidebar && <Sidebar />}
-      <Routes>
-        <Route path="/login" element={auth.isLoggedIn() ? <Navigate to="/" replace /> : <LoginPage />} />
-        <Route path="/" element={<Guard><ConstellationPage /></Guard>} />
-        <Route path="/system/:starId" element={<Guard><SolarSystemPage /></Guard>} />
-        <Route path="/system/:starId/test/:attemptId" element={<Guard><TestPage /></Guard>} />
-        <Route path="/system/:starId/analysis" element={<Guard><VisualiserPage /></Guard>} />
-        <Route path="/system/:starId/concept/:subtopicId" element={<Guard><ConceptPage /></Guard>} />
-        <Route path="/trade" element={<Guard><TradecenterPage /></Guard>} />
-        <Route path="/profile" element={<Guard><ProfilePage /></Guard>} />
-      </Routes>
+      <PageTransition>
+        <Routes>
+          <Route path="/login" element={auth.isLoggedIn() ? <Navigate to="/" replace /> : <LoginPage />} />
+          <Route path="/" element={<Guard><ConstellationPage /></Guard>} />
+          <Route path="/system/:starId" element={<Guard><SolarSystemPage /></Guard>} />
+          <Route path="/system/:starId/test/:attemptId" element={<Guard><TestPage /></Guard>} />
+          <Route path="/system/:starId/analysis" element={<Guard><VisualiserPage /></Guard>} />
+          <Route path="/system/:starId/concept/:subtopicId" element={<Guard><ConceptPage /></Guard>} />
+          <Route path="/arcade" element={<Guard><ArcadePage /></Guard>} />
+          <Route path="/trade" element={<Guard><TradecenterPage /></Guard>} />
+          <Route path="/profile" element={<Guard><ProfilePage /></Guard>} />
+        </Routes>
+      </PageTransition>
     </>
   );
 }

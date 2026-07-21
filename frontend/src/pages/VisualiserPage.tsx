@@ -7,6 +7,7 @@ import {
 import { api, ApiAnalysis, ApiTopic } from "../lib/api";
 import ConceptPlayer from "../components/ConceptPlayer";
 import { HudButton, HudPanel, MonoLabel } from "../components/Hud";
+import SpaceLoader from "../components/SpaceLoader";
 
 // ─── Score dial ──────────────────────────────────────────────────────────────
 function ScoreDial({ score }: { score: number }) {
@@ -75,7 +76,7 @@ export default function VisualiserPage() {
   if (loading) {
     return (
       <div className="page-scroll" style={{ display: "grid", placeItems: "center" }}>
-        <MonoLabel>RETRIEVING ANALYSIS…</MonoLabel>
+        <SpaceLoader label="RETRIEVING ANALYSIS…" />
       </div>
     );
   }

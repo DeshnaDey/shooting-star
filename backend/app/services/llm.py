@@ -106,7 +106,84 @@ class MockProvider:
             return self._design_topic(user)
         if "TASK:concept_map" in system:
             return self._concept_map(user)
+        if "TASK:arcade_wordbank" in system:
+            return self._arcade_wordbank(user)
         return {}
+
+    # -- deterministic arcade word bank -------------------------------------
+    def _arcade_wordbank(self, user: str) -> dict:
+        import re as _re
+
+        spec = json.loads(user)
+        subs = spec.get("subtopics") or [{"name": "General"}]
+        sub_names = [s.get("name", "General") for s in subs] or ["General"]
+
+        # curated general-study bank: real words, 4-8 letters, clue never contains
+        # the word. Includes 5-letter words for Wordle + high-distinct-letter words
+        # (PROBLEM, NUMBERS) that make good Spelling Bee pangrams.
+        curated = [
+            ("THEORY", "A proposed explanation waiting to be tested"),
+            ("GRAPH", "Nodes joined by edges, or a plotted curve"),
+            ("LOGIC", "The study of valid reasoning"),
+            ("PROOF", "An argument that settles a claim for good"),
+            ("MODEL", "A simplified stand-in for the real thing"),
+            ("ENERGY", "The capacity to do work"),
+            ("METHOD", "A systematic way of doing something"),
+            ("SYSTEM", "Connected parts working as a whole"),
+            ("PATTERN", "A repeated, predictable arrangement"),
+            ("PROBLEM", "A question set out to be solved"),
+            ("NUMBERS", "Symbols we count and calculate with"),
+            ("FORMULA", "A rule written in symbols"),
+            ("CONCEPT", "An abstract idea or notion"),
+            ("ANALYSIS", "Breaking something down to understand it"),
+            ("STUDY", "Careful learning of a subject"),
+            ("VECTOR", "A quantity with size and direction"),
+            ("MATRIX", "A rectangular array of numbers"),
+            ("FACTOR", "A number that divides another exactly"),
+            ("PROCESS", "A series of steps toward a result"),
+            ("ELEMENT", "A basic building block of matter"),
+            ("BALANCE", "A state where opposing forces are equal"),
+            ("MEASURE", "To find a size or amount"),
+            ("DIAGRAM", "A drawing that explains how something works"),
+            ("NETWORK", "Connected things that share links"),
+            ("PROGRAM", "A set of coded instructions"),
+            ("SEQUENCE", "Items following one another in order"),
+            ("VARIABLE", "A symbol standing in for a value"),
+            ("FUNCTION", "A rule mapping inputs to outputs"),
+            ("REACTION", "A change that turns substances into others"),
+            ("SOLUTION", "The answer to a problem"),
+            ("EQUATION", "A statement that two things are equal"),
+            ("CIRCUIT", "A closed loop that current flows around"),
+            ("DENSITY", "Mass packed into a given volume"),
+            ("SYMBOL", "A mark that stands for something else"),
+        ]
+
+        words: list[dict] = []
+        used: set[str] = set()
+
+        # 1) pull real topical words straight out of the subtopic names
+        for i, name in enumerate(sub_names):
+            for tok in _re.findall(r"[A-Za-z]+", name):
+                w = tok.upper()
+                if 4 <= len(w) <= 8 and w not in used:
+                    words.append({
+                        "word": w,
+                        "clue": f"A key idea from the '{name}' star",
+                        "subtopic": name,
+                    })
+                    used.add(w)
+                    break  # one word per subtopic name is plenty
+
+        # 2) fill up to 22 from the curated bank, tagging subtopics round-robin
+        for j, (w, clue) in enumerate(curated):
+            if len(words) >= 22:
+                break
+            if w in used:
+                continue
+            words.append({"word": w, "clue": clue, "subtopic": sub_names[j % len(sub_names)]})
+            used.add(w)
+
+        return {"words": words}
 
     def _concept_map(self, user: str) -> dict:
         spec = json.loads(user)

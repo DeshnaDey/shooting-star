@@ -163,6 +163,41 @@ export type ApiProfile = {
 export type ApiProgressPoint = { label: string; avgScore: number | null; attempts: number };
 export type ApiProgress = { period: string; points: ApiProgressPoint[]; trend: number };
 
+// ─── Knowledge Arcade ───────────────────────────────────────────────────────
+
+export type ArcadeGame = "wordle" | "spellingbee" | "crossword" | "strands";
+
+export type ArcadeWordle = {
+  answer: string; clue: string; subtopic: string; length: number; maxGuesses: number;
+};
+export type ArcadeSpellingBee = {
+  letters: string[]; center: string; answers: string[]; pangrams: string[];
+};
+export type ArcadeCrosswordEntry = {
+  num: number; row: number; col: number; dir: "across" | "down";
+  answer: string; clue: string; subtopic: string;
+};
+export type ArcadeCrossword = { rows: number; cols: number; entries: ArcadeCrosswordEntry[] };
+export type ArcadeStrandsWord = { word: string; clue: string; subtopic: string };
+export type ArcadeStrandsPlacement = ArcadeStrandsWord & { cells: [number, number][] };
+export type ArcadeStrands = {
+  rows: number; cols: number; grid: string[]; theme: string;
+  words: ArcadeStrandsWord[]; placements: ArcadeStrandsPlacement[];
+};
+export type ArcadeBundle = {
+  topicId: string; topicName: string; provider: string; cached: boolean;
+  wordle: ArcadeWordle; spellingbee: ArcadeSpellingBee;
+  crossword: ArcadeCrossword; strands: ArcadeStrands;
+};
+
+export type ArcadeRankRow = { name: string; score: number; you: boolean };
+export type ArcadeScoreResult = {
+  game: ArcadeGame; rank: number; total: number;
+  leaderboard: ArcadeRankRow[]; notified: string[];
+};
+
+let _wordListPromise: Promise<Set<string>> | null = null;
+
 export const api = {
   register: async (name: string, email: string, password: string) => {
     const r = await request<{ token: string; name: string; email: string }>(
@@ -210,4 +245,22 @@ export const api = {
   getAnalysis: (attemptId: number) => request<ApiAnalysis>(`/api/attempts/${attemptId}/analysis`),
 
   latestAnalysis: (topicId: string) => request<ApiAnalysis>(`/api/topics/${topicId}/latest-analysis`),
+
+  arcade: (topicId: string, refresh = false) =>
+    request<ArcadeBundle>(`/api/arcade/${topicId}${refresh ? "?refresh=true" : ""}`),
+
+  arcadeScore: (topicId: string, body: { game: ArcadeGame; score: number; time_s: number }) =>
+    request<ArcadeScoreResult>(`/api/arcade/${topicId}/score`, {
+      method: "POST", body: JSON.stringify(body),
+    }),
+
+  // valid-guess dictionary for Wordle, fetched once and cached in memory
+  wordList: (): Promise<Set<string>> => {
+    if (!_wordListPromise) {
+      _wordListPromise = request<{ words: string[] }>("/api/arcade/wordlist")
+        .then((r) => new Set(r.words.map((w) => w.toUpperCase())))
+        .catch((e) => { _wordListPromise = null; throw e; });
+    }
+    return _wordListPromise;
+  },
 };

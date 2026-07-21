@@ -6,12 +6,15 @@ import * as THREE from "three";
 import { api, ApiTopic } from "../lib/api";
 import { starColor, starPosition } from "../lib/visuals";
 import { makeGlowTexture } from "../components/three/helpers";
+import NebulaField from "../components/three/NebulaField";
+import { StarZoom } from "../components/StarTransition";
 import { HudButton, HudPanel, MonoLabel, useToast } from "../components/Hud";
+import type { ThreeEvent } from "@react-three/fiber";
 
 // ─── A clickable topic star ─────────────────────────────────────────────────
 function TopicStar({
   topic, position, onOpen,
-}: { topic: ApiTopic; position: [number, number, number]; onOpen: (t: ApiTopic) => void }) {
+}: { topic: ApiTopic; position: [number, number, number]; onOpen: (t: ApiTopic, e: ThreeEvent<MouseEvent>) => void }) {
   const [hovered, setHovered] = useState(false);
   const core = useRef<THREE.Mesh>(null);
   // Dim until learning is done: unlit stars smoulder, lit stars blaze.
@@ -38,7 +41,7 @@ function TopicStar({
       </sprite>
       <mesh
         ref={core}
-        onClick={(e) => { e.stopPropagation(); onOpen(topic); }}
+        onClick={(e) => { e.stopPropagation(); onOpen(topic, e); }}
         onPointerOver={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = "pointer"; }}
         onPointerOut={() => { setHovered(false); document.body.style.cursor = "auto"; }}
       >
@@ -114,48 +117,6 @@ function PlusStar({ position, onClick }: { position: [number, number, number]; o
           ✛ ADD TOPIC
         </div>
       </Html>
-    </group>
-  );
-}
-
-// ─── Galaxy streaks — faint stretched nebula bands far behind the stars ─────
-function NebulaStreaks() {
-  const group = useRef<THREE.Group>(null);
-  const streaks = useMemo(
-    () => [
-      // overlapping bands in different hues so the cloud blends multi-color
-      { pos: [-9, 4, -20] as const, scale: [34, 6, 1] as const, rot: 0.5, color: "#7a4ba8", opacity: 0.18 },
-      { pos: [-6, 5, -19] as const, scale: [22, 4, 1] as const, rot: 0.6, color: "#e05fb0", opacity: 0.12 }, // magenta bloom
-      { pos: [11, -3, -22] as const, scale: [40, 7, 1] as const, rot: -0.35, color: "#6ec9e8", opacity: 0.12 },
-      { pos: [13, -1, -21] as const, scale: [24, 4.5, 1] as const, rot: -0.3, color: "#3fd6c0", opacity: 0.1 }, // teal
-      { pos: [2, 7, -24] as const, scale: [30, 5, 1] as const, rot: 0.9, color: "#d58be8", opacity: 0.13 },
-      { pos: [-4, -6, -18] as const, scale: [26, 4.5, 1] as const, rot: -0.7, color: "#9d6fc8", opacity: 0.12 },
-      { pos: [-2, -7, -17] as const, scale: [18, 3.4, 1] as const, rot: -0.9, color: "#f6d48f", opacity: 0.09 }, // warm gold wisp
-      { pos: [7, 2, -26] as const, scale: [44, 8, 1] as const, rot: 0.15, color: "#a3dcf0", opacity: 0.08 },
-      { pos: [5, -5, -23] as const, scale: [28, 5, 1] as const, rot: 0.4, color: "#b96fd0", opacity: 0.1 },
-    ],
-    []
-  );
-  const textures = useMemo(() => streaks.map((s) => makeGlowTexture(s.color)), [streaks]);
-
-  useFrame(({ clock }) => {
-    if (group.current) group.current.rotation.z = Math.sin(clock.elapsedTime * 0.015) * 0.06;
-  });
-
-  return (
-    <group ref={group}>
-      {streaks.map((s, i) => (
-        <sprite key={i} position={s.pos} scale={s.scale}>
-          <spriteMaterial
-            map={textures[i]}
-            transparent
-            depthWrite={false}
-            blending={THREE.AdditiveBlending}
-            opacity={s.opacity}
-            rotation={s.rot}
-          />
-        </sprite>
-      ))}
     </group>
   );
 }
@@ -237,6 +198,18 @@ export default function ConstellationPage() {
   const [topics, setTopics] = useState<ApiTopic[] | null>(null);
   const [offline, setOffline] = useState(false);
   const [adding, setAdding] = useState(false);
+  // active star-zoom transition → the clicked star flies to centre, then we navigate
+  const [zoom, setZoom] = useState<{ x: number; y: number; color: string; id: string } | null>(null);
+
+  function openStar(topic: ApiTopic, e: ThreeEvent<MouseEvent>) {
+    if (zoom) return;
+    setZoom({
+      x: e.nativeEvent.clientX,
+      y: e.nativeEvent.clientY,
+      color: starColor(topic.id), // same colour the destination sun uses
+      id: topic.id,
+    });
+  }
 
   useEffect(() => {
     api.topics()
@@ -272,8 +245,10 @@ export default function ConstellationPage() {
           <ambientLight intensity={0.5} />
           <pointLight position={[0, 6, 8]} intensity={40} color="#d58be8" />
           <pointLight position={[-8, -4, -6]} intensity={30} color="#7a4ba8" />
+          {/* soft gold wash so the landing sky reads purple + gold */}
+          <pointLight position={[9, -3, 5]} intensity={16} color="#f6d48f" />
 
-          <NebulaStreaks />
+          <NebulaField count={28} width={95} tilt={0.26} depth={-32} />
           <Stars radius={70} depth={40} count={4000} factor={3} saturation={0.4} fade speed={0.6} />
           <Sparkles count={70} scale={26} size={2.2} speed={0.25} color="#d58be8" opacity={0.5} />
           <Sparkles count={60} scale={30} size={1.6} speed={0.18} color="#6ec9e8" opacity={0.4} />
@@ -294,8 +269,7 @@ export default function ConstellationPage() {
               />
             ))}
             {(topics ?? []).map((t, i) => (
-              <TopicStar key={t.id} topic={t} position={positions[i]}
-                onOpen={(topic) => navigate(`/system/${topic.id}`)} />
+              <TopicStar key={t.id} topic={t} position={positions[i]} onOpen={openStar} />
             ))}
             {topics !== null && !offline && (
               <PlusStar position={plusPos} onClick={() => setAdding(true)} />
@@ -336,6 +310,15 @@ export default function ConstellationPage() {
         <AddTopicModal
           onClose={() => setAdding(false)}
           onCreated={(t) => { setTopics((prev) => [...(prev ?? []), t]); setAdding(false); }}
+        />
+      )}
+
+      {zoom && (
+        <StarZoom
+          x={zoom.x}
+          y={zoom.y}
+          color={zoom.color}
+          onDone={() => navigate(`/system/${zoom.id}`, { state: { zoomColor: zoom.color } })}
         />
       )}
     </>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { HudButton, HudPanel, MonoLabel } from "../components/Hud";
+import RainbowHaze from "../components/RainbowHaze";
 
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "11px 14px", boxSizing: "border-box",
@@ -51,7 +52,9 @@ export default function LoginPage() {
           <MonoLabel>LEARNING CONSTELLATION · SIGN {mode === "login" ? "IN" : "UP"}</MonoLabel>
         </div>
 
-        <HudPanel>
+        <div style={{ position: "relative" }}>
+        <RainbowHaze style={{ inset: "-46px", width: "auto", height: "auto", opacity: 0.42 }} />
+        <HudPanel style={{ position: "relative" }}>
           {/* mode tabs */}
           <div style={{ display: "flex", gap: 6, marginBottom: 18 }}>
             {(["login", "register"] as const).map((m) => (
@@ -99,6 +102,7 @@ export default function LoginPage() {
             </HudButton>
           </div>
         </HudPanel>
+        </div>
 
         <p style={{
           textAlign: "center", marginTop: 14,

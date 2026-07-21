@@ -104,3 +104,14 @@ class ConceptMap(Base):
     provider: Mapped[str] = mapped_column(String(20), default="mock")
     payload: Mapped[dict] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class ArcadePuzzle(Base):
+    """Cached Knowledge Arcade bundle (wordle + spelling bee + crossword + strands)
+    generated per topic. The LLM supplies the word bank; puzzles are packed in code."""
+    __tablename__ = "arcade_puzzles"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    topic_id: Mapped[str] = mapped_column(String(40), unique=True)
+    provider: Mapped[str] = mapped_column(String(20), default="mock")
+    payload: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

@@ -6,6 +6,7 @@ import ScenePlayer from "../components/ScenePlayer";
 import ConceptVideo from "../components/ConceptVideo";
 import { MindmapView, DefinitionView, FlowView, KIND_LABEL } from "../components/SlideViews";
 import { HudButton, HudPanel, MonoLabel } from "../components/Hud";
+import SpaceLoader from "../components/SpaceLoader";
 
 type Mode = "video" | "deck";
 
@@ -39,7 +40,7 @@ export default function ConceptPage() {
   if (!map) {
     return (
       <div className="page-scroll" style={{ display: "grid", placeItems: "center" }}>
-        <MonoLabel>GENERATING VISUAL DECK… (FIRST VISIT TAKES A MOMENT)</MonoLabel>
+        <SpaceLoader label="GENERATING VISUAL DECK… (FIRST VISIT TAKES A MOMENT)" />
       </div>
     );
   }

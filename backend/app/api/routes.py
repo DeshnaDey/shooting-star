@@ -15,6 +15,8 @@ from app.schemas.schemas import (
     SubtopicOut, TopicOut,
 )
 from app.services.answer_analysis import analyse
+from app.services.arcade_generation import get_arcade
+from app.services.wordle_words import WORDLE_WORDS_SORTED
 from app.services.concept_visualization import get_concept_map
 from app.services.file_parser import extract_text
 from app.services.grading import grade_answer
@@ -158,6 +160,72 @@ def subtopic_concept(subtopic_id: str, db: Session = Depends(get_db), user: User
     topic = _owned_topic(db, user, sub.topic_id)
     llm = get_llm()
     return get_concept_map(db, llm, sub, topic)
+
+
+# ─── Knowledge Arcade ─────────────────────────────────────────────────────────
+# Word puzzles (Wordle / Spelling Bee / Crossword / Strands) whose vocabulary is
+# drawn from the topics a student has explored. Ranking + friend notifications are
+# hardcoded for the hackathon demo (docs/PROMPT.md — social phase).
+
+@router.get("/arcade/wordlist")
+def arcade_wordlist(user: User = Depends(get_current_user)):
+    """Valid-guess dictionary for Wordle (client caches this and validates locally)."""
+    return {"words": WORDLE_WORDS_SORTED}
+
+
+@router.get("/arcade/{topic_id}")
+def arcade(topic_id: str, refresh: bool = False, db: Session = Depends(get_db),
+           user: User = Depends(get_current_user)):
+    topic = _owned_topic(db, user, topic_id)
+    subtopics = db.query(Subtopic).filter(Subtopic.topic_id == topic.id).all()
+    if not subtopics:
+        raise HTTPException(400, "topic has no subtopics to build puzzles from")
+    llm = get_llm()
+    return get_arcade(db, llm, topic, subtopics, refresh=refresh)
+
+
+_ARCADE_FRIENDS = ["Aarav", "Diya", "Rohan", "Ananya", "Vikram", "Priya", "Karthik"]
+_GAME_BASELINE = {"wordle": 55, "spellingbee": 70, "crossword": 60, "strands": 65}
+
+
+class ArcadeScoreIn(BaseModel):
+    game: str = Field(pattern="^(wordle|spellingbee|crossword|strands)$")
+    score: int = Field(ge=0, le=100000)
+    time_s: float = Field(default=0.0, ge=0)
+
+
+class ArcadeRankRow(BaseModel):
+    name: str
+    score: int
+    you: bool = False
+
+
+class ArcadeScoreOut(BaseModel):
+    game: str
+    rank: int
+    total: int
+    leaderboard: list[ArcadeRankRow]
+    notified: list[str]
+
+
+@router.post("/arcade/{topic_id}/score", response_model=ArcadeScoreOut)
+def arcade_score(topic_id: str, body: ArcadeScoreIn, db: Session = Depends(get_db),
+                 user: User = Depends(get_current_user)):
+    _owned_topic(db, user, topic_id)
+    # deterministic-but-varied friend scores, seeded per topic+game (demo only)
+    import random as _random
+    seed = f"{topic_id}:{body.game}"
+    rng = _random.Random(sum(ord(c) for c in seed))
+    base = _GAME_BASELINE.get(body.game, 60)
+    rows = [ArcadeRankRow(name=f, score=max(0, int(rng.gauss(base, 18))))
+            for f in _ARCADE_FRIENDS]
+    rows.append(ArcadeRankRow(name=user.name.split()[0] or "You", score=body.score, you=True))
+    rows.sort(key=lambda r: r.score, reverse=True)
+    rank = next(i for i, r in enumerate(rows, 1) if r.you)
+    # "notify" the friends you just beat (hardcoded social hook)
+    notified = [r.name for r in rows if not r.you][:3]
+    return ArcadeScoreOut(game=body.game, rank=rank, total=len(rows),
+                          leaderboard=rows, notified=notified)
 
 
 # ─── Attempts ────────────────────────────────────────────────────────────────

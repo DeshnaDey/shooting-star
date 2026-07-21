@@ -1,26 +1,9 @@
 """End-to-end tests: auth, per-user scoping, core test loop, concept decks.
-Runs with the mock LLM provider and a throwaway SQLite DB."""
+Runs with the mock LLM provider and a throwaway SQLite DB.
 
-import os
-
-os.environ["LLM_PROVIDER"] = "mock"
-os.environ["DATABASE_URL"] = "sqlite:///./test_shooting_star.db"
-os.environ["JWT_SECRET"] = "test-secret"
+Env + the shared session-scoped ``client`` fixture live in ``conftest.py``."""
 
 import pytest
-from fastapi.testclient import TestClient
-
-from app.main import app
-
-
-@pytest.fixture(scope="module")
-def client():
-    if os.path.exists("test_shooting_star.db"):
-        os.remove("test_shooting_star.db")
-    with TestClient(app) as c:
-        yield c
-    if os.path.exists("test_shooting_star.db"):
-        os.remove("test_shooting_star.db")
 
 
 @pytest.fixture(scope="module")

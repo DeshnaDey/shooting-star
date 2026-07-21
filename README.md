@@ -2,6 +2,8 @@
 
 Space-themed adaptive learning platform: pick a star (topic) from a 3D constellation → enter its solar system (subtopics as planets) → take a test (MCQ / long-answer / flashcards, optionally timed) → get analysed down to the specific subtopic you're weak on → step through an AI-generated concept visualisation → retake and improve.
 
+**Knowledge Arcade** (`/arcade`): word games — Wordle, Spelling Bee, Crossword and Sprangle (word-search) — whose vocabulary is drawn from the topics you've studied. The LLM produces a themed word bank per star; the four puzzles are then packed deterministically in Python (`backend/app/services/arcade_puzzles.py`), so it works offline via the mock provider. Finishing a game posts to a leaderboard and "notifies" friends (both hardcoded for the demo — `POST /api/arcade/{topic}/score`).
+
 Full long-term spec (points, coupon scraper, social, etc.): [`docs/PROMPT.md`](docs/PROMPT.md).
 
 ## Structure
@@ -10,7 +12,7 @@ Full long-term spec (points, coupon scraper, social, etc.): [`docs/PROMPT.md`](d
 shooting-star/
 ├── frontend/          # React + TS + Vite + react-three-fiber frontend
 │   └── src/
-│       ├── pages/       # ConstellationPage, SolarSystemPage, TestPage, VisualiserPage, ConceptPage
+│       ├── pages/       # ConstellationPage, SolarSystemPage, TestPage, VisualiserPage, ConceptPage, ArcadePage
 │       ├── components/  # HUD, ConceptVideo (narrated Video Overview), SlideViews, three.js helpers
 │       ├── lib/api.ts   # API client
 │       ├── data/        # 3D layout data + offline mock analysis
