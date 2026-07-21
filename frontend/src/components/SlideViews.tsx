@@ -1,13 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { api, ApiConceptMap, ApiSlide } from "../lib/api";
-import ConceptPlayer from "../components/ConceptPlayer";
-import { HudButton, HudPanel, MonoLabel } from "../components/Hud";
+import { useMemo } from "react";
+import { ApiSlide } from "../lib/api";
+import { MonoLabel } from "./Hud";
 
-const BRANCH_COLORS = ["#f78fd2", "#b79cfb", "#f9bce2", "#9d74f7", "#fde3f2", "#d4c6fd"];
+// Shared slide renderers used by both the DECK view (ConceptPage) and the
+// VIDEO OVERVIEW player (ConceptVideo). Each view accepts an optional `reveal`
+// (0..1). reveal === 1 (the default) shows everything at once — the deck
+// behaviour. Values below 1 progressively build the slide in, which the video
+// player drives in sync with the spoken narration.
 
-// ─── Mindmap slide — radial map ─────────────────────────────────────────────
-function wrap(text: string, maxChars: number): string[] {
+const BRANCH_COLORS = ["#6ec9e8", "#d58be8", "#f6d48f", "#9d6fc8", "#a3dcf0", "#7a4ba8"];
+
+export function wrap(text: string, maxChars: number): string[] {
   const words = text.split(" ");
   const lines: string[] = [];
   let cur = "";
@@ -22,16 +25,30 @@ function wrap(text: string, maxChars: number): string[] {
   return lines.slice(0, 3);
 }
 
-function MindmapView({ slide }: { slide: Extract<ApiSlide, { kind: "mindmap" }> }) {
+/** How many of `total` items are visible at a given reveal fraction. */
+function visibleCount(reveal: number, total: number): number {
+  if (reveal >= 1) return total;
+  if (reveal <= 0) return 0;
+  return Math.min(total, Math.ceil(reveal * total));
+}
+
+// ─── Mindmap slide — radial map ─────────────────────────────────────────────
+export function MindmapView({
+  slide,
+  reveal = 1,
+}: {
+  slide: Extract<ApiSlide, { kind: "mindmap" }>;
+  reveal?: number;
+}) {
   const W = 880, CX = W / 2;
   const branches = slide.branches;
   const perBranchHeights = branches.map((b) => Math.max(90, b.children.length * 46 + 30));
   const R1 = 165;
 
-  // place branches around a circle; children fan outward at the branch angle
   const n = branches.length;
   const H = Math.max(560, 200 + Math.max(...perBranchHeights) * 2);
   const CY = H / 2;
+  const shown = visibleCount(reveal, n);
 
   return (
     <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ overflow: "visible" }}>
@@ -41,9 +58,18 @@ function MindmapView({ slide }: { slide: Extract<ApiSlide, { kind: "mindmap" }> 
         const by = CY + Math.sin(angle) * R1 * 0.72;
         const color = BRANCH_COLORS[i % BRANCH_COLORS.length];
         const side = Math.cos(angle) >= 0 ? 1 : -1;
+        const on = i < shown;
 
         return (
-          <g key={i}>
+          <g
+            key={i}
+            style={{
+              opacity: on ? 1 : 0,
+              transform: on ? "none" : "scale(0.9)",
+              transformOrigin: `${CX}px ${CY}px`,
+              transition: "opacity 0.5s ease, transform 0.5s ease",
+            }}
+          >
             {/* center → branch */}
             <path
               d={`M ${CX},${CY} Q ${(CX + bx) / 2},${(CY + by) / 2 - 18} ${bx},${by}`}
@@ -51,7 +77,7 @@ function MindmapView({ slide }: { slide: Extract<ApiSlide, { kind: "mindmap" }> 
             />
             {/* branch node */}
             <rect x={bx - 76} y={by - 17} width="152" height="34" rx="17"
-              fill="rgba(42,32,68,0.95)" stroke={color} strokeWidth="1.2"
+              fill="rgba(14,30,60,0.95)" stroke={color} strokeWidth="1.2"
               style={{ filter: `drop-shadow(0 0 8px ${color}55)` }} />
             <text x={bx} y={by + 4} textAnchor="middle" fill="var(--white-core)"
               style={{ font: "600 11.5px var(--font-body)" }}>
@@ -90,9 +116,9 @@ function MindmapView({ slide }: { slide: Extract<ApiSlide, { kind: "mindmap" }> 
       })}
 
       {/* center node on top */}
-      <circle cx={CX} cy={CY} r="52" fill="rgba(42,32,68,0.97)"
+      <circle cx={CX} cy={CY} r="52" fill="rgba(14,30,60,0.97)"
         stroke="var(--pink)" strokeWidth="1.6"
-        style={{ filter: "drop-shadow(0 0 18px rgba(247,143,210,0.5))" }} />
+        style={{ filter: "drop-shadow(0 0 18px rgba(213,139,232,0.5))" }} />
       <text x={CX} y={CY + 4} textAnchor="middle" fill="var(--white-core)"
         style={{ font: "600 12px var(--font-body)" }}>
         {wrap(slide.center, 14).map((ln, k, arr) => (
@@ -104,15 +130,25 @@ function MindmapView({ slide }: { slide: Extract<ApiSlide, { kind: "mindmap" }> 
 }
 
 // ─── Definition slide — hard words, simply ──────────────────────────────────
-function DefinitionView({ slide }: { slide: Extract<ApiSlide, { kind: "definition" }> }) {
+export function DefinitionView({
+  slide,
+  reveal = 1,
+}: {
+  slide: Extract<ApiSlide, { kind: "definition" }>;
+  reveal?: number;
+}) {
+  const shown = visibleCount(reveal, slide.terms.length);
   return (
     <div style={{ display: "grid", gap: 16 }}>
       {slide.terms.map((t, i) => (
         <div key={i} style={{
           padding: "18px 20px",
-          background: "rgba(25,18,40,0.6)",
+          background: "rgba(11,24,45,0.6)",
           border: "1px solid rgba(183,156,251,0.3)",
           clipPath: "polygon(12px 0%, 100% 0%, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0% 100%, 0% 12px)",
+          opacity: i < shown ? 1 : 0,
+          transform: i < shown ? "none" : "translateY(10px)",
+          transition: "opacity 0.5s ease, transform 0.5s ease",
         }}>
           <h3 className="display-title" style={{ fontSize: 24, fontStyle: "italic", marginBottom: 12, color: "var(--pink-soft)" }}>
             {t.term}
@@ -146,8 +182,14 @@ function DefinitionView({ slide }: { slide: Extract<ApiSlide, { kind: "definitio
 }
 
 // ─── Flow slide (flowchart) ─────────────────────────────────────────────────
-function FlowView({ slide }: { slide: Extract<ApiSlide, { kind: "flow" }> }) {
-  const { pos, W, H, NODE_W, NODE_H } = useMemo(() => {
+export function FlowView({
+  slide,
+  reveal = 1,
+}: {
+  slide: Extract<ApiSlide, { kind: "flow" }>;
+  reveal?: number;
+}) {
+  const { pos, order, W, H, NODE_W, NODE_H } = useMemo(() => {
     const { nodes, edges } = slide;
     const incoming = new Map<string, number>(nodes.map((n) => [n.id, 0]));
     edges.forEach((e) => incoming.set(e.to, (incoming.get(e.to) ?? 0) + 1));
@@ -182,26 +224,34 @@ function FlowView({ slide }: { slide: Extract<ApiSlide, { kind: "flow" }> }) {
         pos.set(id, { x: (W / (ids.length + 1)) * (i + 1) - NODE_W / 2, y: rowIdx * (NODE_H + GAP_Y) + 16 });
       });
     });
-    return { pos, W, H: sorted.length * (NODE_H + GAP_Y) + 30, NODE_W, NODE_H };
+    // stable reveal order: top rows first, left-to-right within a row
+    const order = new Map<string, number>();
+    let oi = 0;
+    sorted.forEach((l) => rows.get(l)!.forEach((id) => order.set(id, oi++)));
+    return { pos, order, W, H: sorted.length * (NODE_H + GAP_Y) + 30, NODE_W, NODE_H };
   }, [slide]);
+
+  const shown = visibleCount(reveal, slide.nodes.length);
+  const nodeOn = (id: string) => (order.get(id) ?? 0) < shown;
 
   return (
     <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ overflow: "visible" }}>
       <defs>
         <marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
-          <path d="M0,0 L8,4 L0,8 z" fill="#f78fd2" opacity="0.8" />
+          <path d="M0,0 L8,4 L0,8 z" fill="#d58be8" opacity="0.8" />
         </marker>
       </defs>
       {slide.edges.map((e, i) => {
         const a = pos.get(e.from), b = pos.get(e.to);
         if (!a || !b) return null;
+        const on = nodeOn(e.from) && nodeOn(e.to);
         const x1 = a.x + NODE_W / 2, y1 = a.y + NODE_H;
         const x2 = b.x + NODE_W / 2, y2 = b.y - 4;
         const my = (y1 + y2) / 2;
         return (
-          <g key={i}>
+          <g key={i} style={{ opacity: on ? 1 : 0, transition: "opacity 0.45s ease" }}>
             <path d={`M ${x1},${y1} C ${x1},${my} ${x2},${my} ${x2},${y2}`}
-              fill="none" stroke="rgba(247,143,210,0.55)" strokeWidth="1.4" markerEnd="url(#arrow)" />
+              fill="none" stroke="rgba(213,139,232,0.55)" strokeWidth="1.4" markerEnd="url(#arrow)" />
             {e.label && (
               <text x={(x1 + x2) / 2} y={my - 6} textAnchor="middle" fill="var(--text-dim)"
                 style={{ font: "400 9px var(--font-mono)", letterSpacing: "0.12em" }}>
@@ -213,11 +263,20 @@ function FlowView({ slide }: { slide: Extract<ApiSlide, { kind: "flow" }> }) {
       })}
       {slide.nodes.map((n) => {
         const p = pos.get(n.id)!;
+        const on = nodeOn(n.id);
         return (
-          <g key={n.id} transform={`translate(${p.x},${p.y})`}>
+          <g
+            key={n.id}
+            transform={`translate(${p.x},${p.y})`}
+            style={{
+              opacity: on ? 1 : 0,
+              transform: `translate(${p.x}px,${p.y}px) scale(${on ? 1 : 0.92})`,
+              transition: "opacity 0.45s ease, transform 0.45s ease",
+            }}
+          >
             <path d={`M 12,0 H ${NODE_W} V ${NODE_H - 12} L ${NODE_W - 12},${NODE_H} H 0 V 12 Z`}
-              fill="rgba(42,32,68,0.92)" stroke="rgba(247,143,210,0.5)" strokeWidth="1"
-              style={{ filter: "drop-shadow(0 0 10px rgba(157,116,247,0.25))" }} />
+              fill="rgba(14,30,60,0.92)" stroke="rgba(213,139,232,0.5)" strokeWidth="1"
+              style={{ filter: "drop-shadow(0 0 10px rgba(122,75,168,0.25))" }} />
             <text x={NODE_W / 2} y={30} textAnchor="middle" fill="var(--white-core)"
               style={{ font: "600 12.5px var(--font-body)" }}>{n.label}</text>
             <text x={NODE_W / 2} y={50} textAnchor="middle" fill="var(--text-dim)"
@@ -231,114 +290,9 @@ function FlowView({ slide }: { slide: Extract<ApiSlide, { kind: "flow" }> }) {
   );
 }
 
-const KIND_LABEL: Record<ApiSlide["kind"], string> = {
+export const KIND_LABEL: Record<ApiSlide["kind"], string> = {
   mindmap: "MINDMAP",
   definition: "DEFINITIONS",
   flow: "FLOWCHART",
   animation: "ANIMATION",
 };
-
-// ─── Page ───────────────────────────────────────────────────────────────────
-export default function ConceptPage() {
-  const { starId, subtopicId } = useParams();
-  const navigate = useNavigate();
-  const [map, setMap] = useState<ApiConceptMap | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [idx, setIdx] = useState(0);
-
-  useEffect(() => {
-    if (!subtopicId) return;
-    api.concept(subtopicId)
-      .then(setMap)
-      .catch((e) => setError(e?.status === 404 ? "UNKNOWN SUBTOPIC" : "API OFFLINE — START THE BACKEND"));
-  }, [subtopicId]);
-
-  if (error) {
-    return (
-      <div className="page-scroll" style={{ display: "grid", placeItems: "center" }}>
-        <HudPanel>
-          <MonoLabel>{error}</MonoLabel>
-          <div style={{ height: 12 }} />
-          <HudButton onClick={() => navigate(`/system/${starId}`)}>BACK TO SYSTEM</HudButton>
-        </HudPanel>
-      </div>
-    );
-  }
-  if (!map) {
-    return (
-      <div className="page-scroll" style={{ display: "grid", placeItems: "center" }}>
-        <MonoLabel>GENERATING VISUAL DECK… (FIRST VISIT TAKES A MOMENT)</MonoLabel>
-      </div>
-    );
-  }
-
-  const slides = map.slides;
-  const slide = slides[Math.min(idx, slides.length - 1)];
-
-  return (
-    <div className="page-scroll">
-      <div style={{ maxWidth: 960, margin: "0 auto", padding: "36px 28px 80px 170px" }}>
-        <button
-          onClick={() => navigate(`/system/${starId}`)}
-          style={{
-            background: "none", border: "none", cursor: "pointer", padding: 0,
-            fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.2em",
-            color: "var(--text-dim)", marginBottom: 14,
-          }}
-        >
-          ◄ {map.topicName.toUpperCase()} SYSTEM
-        </button>
-        <div className="mono-label">
-          CONCEPT VISUALISER · ENGINE: {map.provider.toUpperCase()}{map.cached ? " · CACHED" : ""}
-        </div>
-        <h1 className="display-title" style={{ fontSize: 42, fontStyle: "italic", marginBottom: 20 }}>
-          {map.name}
-        </h1>
-
-        {/* slide tab strip */}
-        <div style={{ display: "flex", gap: 6, marginBottom: 18, flexWrap: "wrap" }}>
-          {slides.map((s, i) => (
-            <button key={i} onClick={() => setIdx(i)}
-              style={{
-                padding: "8px 16px", cursor: "pointer",
-                fontFamily: "var(--font-mono)", fontSize: 8.5, letterSpacing: "0.14em",
-                color: idx === i ? "var(--white-core)" : "var(--text-dim)",
-                background: idx === i ? "rgba(247,143,210,0.18)" : "rgba(157,116,247,0.06)",
-                border: `1px solid ${idx === i ? "var(--pink)" : "rgba(183,156,251,0.25)"}`,
-                clipPath: "polygon(6px 0%, 100% 0%, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0% 100%, 0% 6px)",
-              }}>
-              {i + 1} · {KIND_LABEL[s.kind]}
-            </button>
-          ))}
-        </div>
-
-        {/* slide */}
-        <HudPanel style={{ marginBottom: 18 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
-            <div>
-              <MonoLabel style={{ color: "var(--pink-soft)" }}>
-                SLIDE {idx + 1}/{slides.length} · {KIND_LABEL[slide.kind]}
-              </MonoLabel>
-              <h2 className="display-title" style={{ fontSize: 27, fontStyle: "italic", margin: "4px 0 14px" }}>
-                {slide.title}
-              </h2>
-            </div>
-          </div>
-
-          {slide.kind === "mindmap" && <MindmapView slide={slide} />}
-          {slide.kind === "definition" && <DefinitionView slide={slide} />}
-          {slide.kind === "flow" && <FlowView slide={slide} />}
-          {slide.kind === "animation" && <ConceptPlayer frames={slide.frames} />}
-        </HudPanel>
-
-        {/* deck navigation */}
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <HudButton variant="ghost" disabled={idx === 0} onClick={() => setIdx(idx - 1)}>◄ PREV</HudButton>
-          <HudButton variant="ghost" disabled={idx === slides.length - 1} onClick={() => setIdx(idx + 1)}>NEXT ►</HudButton>
-          <div style={{ flex: 1 }} />
-          <HudButton onClick={() => navigate(`/system/${starId}`)}>▸ TEST THIS SYSTEM</HudButton>
-        </div>
-      </div>
-    </div>
-  );
-}

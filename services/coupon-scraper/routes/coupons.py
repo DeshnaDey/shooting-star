@@ -2,7 +2,7 @@
 Named coupons.py to match the existing file/route layout; serves RewardItem
 rows where kind='coupon'. Cosmetic-kind rewards are a different catalog,
 owned elsewhere - not served here."""
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db, RewardItem
 
@@ -24,5 +24,9 @@ def list_rewards(db: Session = Depends(get_db)):
 def get_reward(reward_item_id: int, db: Session = Depends(get_db)):
     item = db.query(RewardItem).get(reward_item_id)
     if not item or item.kind != "coupon":
-        return {"error": "not_found"}, 404
+        # NOTE: `return {...}, 404` is a Flask idiom and does nothing useful
+        # in FastAPI - it serializes the tuple as a JSON array and still
+        # responds 200, so callers checking the status code never see the
+        # 404. Use HTTPException to actually set the response status.
+        raise HTTPException(404, "not_found")
     return item.to_dict(db)

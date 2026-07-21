@@ -23,4 +23,4 @@ venv/
 # App
 *.db
 .venv/
-apps/web/dist/
+frontend/dist/

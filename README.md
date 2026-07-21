@@ -8,21 +8,20 @@ Full long-term spec (points, coupon scraper, social, etc.): [`docs/PROMPT.md`](d
 
 ```
 shooting-star/
-├── apps/
-│   ├── web/          # React + TS + Vite + react-three-fiber frontend
-│   │   └── src/
-│   │       ├── pages/       # ConstellationPage, SolarSystemPage, TestPage, VisualiserPage
-│   │       ├── components/  # HUD buttons/panels, three.js helpers
-│   │       ├── lib/api.ts   # API client
-│   │       ├── data/        # 3D layout data + offline mock analysis
-│   │       └── styles/      # pink-purple-white theme
-│   └── api/          # FastAPI backend
-│       └── app/
-│           ├── api/routes.py       # topics, attempts, submit, analysis
-│           ├── core/config.py      # env settings
-│           ├── db/                 # engine + seed
-│           ├── models/ schemas/
-│           └── services/           # llm adapter, quiz_generation, grading, answer_analysis
+├── frontend/          # React + TS + Vite + react-three-fiber frontend
+│   └── src/
+│       ├── pages/       # ConstellationPage, SolarSystemPage, TestPage, VisualiserPage, ConceptPage
+│       ├── components/  # HUD, ConceptVideo (narrated Video Overview), SlideViews, three.js helpers
+│       ├── lib/api.ts   # API client
+│       ├── data/        # 3D layout data + offline mock analysis
+│       └── styles/      # pink-purple-white theme
+├── backend/           # FastAPI backend
+│   └── app/
+│       ├── api/routes.py       # topics, attempts, submit, analysis, concept
+│       ├── core/config.py      # env settings
+│       ├── db/                 # engine + session
+│       ├── models/ schemas/
+│       └── services/           # llm adapter, quiz_generation, grading, answer_analysis, concept_visualization
 ├── services/coupon-scraper/   # future: rewards scraper (see PROMPT.md)
 ├── packages/ infra/ scripts/  # future phases
 └── docs/PROMPT.md             # full product spec
@@ -33,7 +32,7 @@ shooting-star/
 **Backend** (Python 3.10+):
 
 ```bash
-cd apps/api
+cd backend
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload          # http://localhost:8000
@@ -42,7 +41,7 @@ uvicorn app.main:app --reload          # http://localhost:8000
 **Frontend**:
 
 ```bash
-cd apps/web
+cd frontend
 npm install
 npm run dev                            # http://localhost:5173
 ```
@@ -54,19 +53,19 @@ Works out of the box with zero config: SQLite database + deterministic mock ques
 The backend calls any OpenAI-compatible endpoint. Two free options via [Ollama](https://ollama.com):
 
 - **Local**: install Ollama, `ollama pull qwen3:8b`, done — the default config points at `http://localhost:11434`.
-- **Ollama Cloud (free tier)**: sign up at ollama.com, create an API key, then in `apps/api/.env` set `OLLAMA_BASE_URL=https://ollama.com`, `OLLAMA_API_KEY=...`, `OLLAMA_MODEL=gpt-oss:20b`.
+- **Ollama Cloud (free tier)**: sign up at ollama.com, create an API key, then in `backend/.env` set `OLLAMA_BASE_URL=https://ollama.com`, `OLLAMA_API_KEY=...`, `OLLAMA_MODEL=gpt-oss:20b`.
 
 If the LLM is unreachable the app automatically falls back to the mock provider (responses are labelled with the engine used). Weak-subtopic detection is deterministic (accuracy per subtopic, min 2 questions) — the LLM writes the diagnosis and visualiser frames, never the verdict.
 
 ## Supabase
 
-Default DB is a local SQLite file. To use Supabase: dashboard → Connect → copy the *Session pooler* URI into `apps/api/.env` as `DATABASE_URL`, changing the scheme to `postgresql+psycopg://`. Tables are created and seeded automatically on first startup.
+Default DB is a local SQLite file (recommended for local dev — zero setup, no network). To use Supabase: dashboard → Connect → copy the **Transaction pooler** URI (port 6543) into `backend/.env` as `DATABASE_URL`, change the scheme to `postgresql+psycopg://`, URL-encode any `@` in the password as `%40`, and append `?prepare_threshold=0`. Tables are created automatically on first startup. Note: this requires a network that can reach `pooler.supabase.com`.
 
 See `.env.example` for all settings.
 
 ## Tests
 
 ```bash
-cd apps/api && python3 -m pytest        # full core-loop tests (mock LLM, throwaway DB)
-cd apps/web && npm run build            # typecheck + production build
+cd backend && python3 -m pytest         # full core-loop tests (mock LLM, throwaway DB)
+cd frontend && npm run build            # typecheck + production build
 ```

@@ -6,7 +6,7 @@ import { HudButton, HudPanel, MonoLabel } from "../components/Hud";
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "11px 14px", boxSizing: "border-box",
   fontFamily: "var(--font-body)", fontSize: 14, color: "var(--text-bright)",
-  background: "rgba(157,116,247,0.08)", border: "1px solid rgba(183,156,251,0.35)",
+  background: "rgba(122,75,168,0.08)", border: "1px solid rgba(183,156,251,0.35)",
   outline: "none",
   clipPath: "polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px)",
 };
@@ -60,7 +60,7 @@ export default function LoginPage() {
                   flex: 1, padding: "9px 4px", cursor: "pointer",
                   fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.14em",
                   color: mode === m ? "var(--white-core)" : "var(--text-dim)",
-                  background: mode === m ? "rgba(247,143,210,0.18)" : "rgba(157,116,247,0.06)",
+                  background: mode === m ? "rgba(213,139,232,0.18)" : "rgba(122,75,168,0.06)",
                   border: `1px solid ${mode === m ? "var(--pink)" : "rgba(183,156,251,0.25)"}`,
                   clipPath: "polygon(6px 0%, 100% 0%, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0% 100%, 0% 6px)",
                 }}>

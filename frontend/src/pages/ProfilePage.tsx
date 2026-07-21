@@ -113,8 +113,8 @@ export default function ProfilePage() {
                     padding: "7px 14px", cursor: "pointer",
                     fontFamily: "var(--font-mono)", fontSize: 8, letterSpacing: "0.14em",
                     color: period === p.id ? "var(--white-core)" : "var(--text-dim)",
-                    background: period === p.id ? "rgba(240,122,200,0.18)" : "rgba(139,92,246,0.06)",
-                    border: `1px solid ${period === p.id ? "var(--pink)" : "rgba(167,139,250,0.2)"}`,
+                    background: period === p.id ? "rgba(213,139,232,0.18)" : "rgba(122,75,168,0.06)",
+                    border: `1px solid ${period === p.id ? "var(--pink)" : "rgba(122,75,168,0.2)"}`,
                     clipPath: "polygon(6px 0%, 100% 0%, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0% 100%, 0% 6px)",
                   }}>
                   {p.label}
@@ -138,22 +138,22 @@ export default function ProfilePage() {
           <div style={{ height: 250, marginTop: 10 }}>
             <ResponsiveContainer>
               <LineChart data={chartData} margin={{ top: 8, right: 12, left: -18, bottom: 0 }}>
-                <CartesianGrid stroke="rgba(167,139,250,0.1)" vertical={false} />
-                <XAxis dataKey="label" tick={{ fill: "rgba(196,181,253,0.55)", fontSize: 10, fontFamily: "JetBrains Mono" }} axisLine={false} tickLine={false} />
-                <YAxis domain={[0, 100]} tick={{ fill: "rgba(196,181,253,0.4)", fontSize: 10, fontFamily: "JetBrains Mono" }} axisLine={false} tickLine={false} />
+                <CartesianGrid stroke="rgba(122,75,168,0.1)" vertical={false} />
+                <XAxis dataKey="label" tick={{ fill: "rgba(163,220,240,0.55)", fontSize: 10, fontFamily: "JetBrains Mono" }} axisLine={false} tickLine={false} />
+                <YAxis domain={[0, 100]} tick={{ fill: "rgba(163,220,240,0.4)", fontSize: 10, fontFamily: "JetBrains Mono" }} axisLine={false} tickLine={false} />
                 <Tooltip
-                  cursor={{ stroke: "rgba(240,122,200,0.3)" }}
+                  cursor={{ stroke: "rgba(213,139,232,0.3)" }}
                   contentStyle={{
-                    background: "rgba(24,17,42,0.95)", border: "1px solid rgba(240,122,200,0.3)",
-                    fontFamily: "JetBrains Mono", fontSize: 11, color: "#fff4fb",
+                    background: "rgba(14,30,60,0.95)", border: "1px solid rgba(213,139,232,0.3)",
+                    fontFamily: "JetBrains Mono", fontSize: 11, color: "#f4fbff",
                   }}
                   formatter={(v) => [v == null ? "no tests" : String(v), "avg score"]}
                 />
                 <Line
                   type="monotone" dataKey="score" connectNulls
-                  stroke="#f07ac8" strokeWidth={2}
-                  dot={{ r: 3.5, fill: "#f07ac8", strokeWidth: 0 }}
-                  activeDot={{ r: 5, fill: "#fff4fb" }}
+                  stroke="#6ec9e8" strokeWidth={2}
+                  dot={{ r: 3.5, fill: "#6ec9e8", strokeWidth: 0 }}
+                  activeDot={{ r: 5, fill: "#f4fbff" }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -175,17 +175,17 @@ export default function ProfilePage() {
             {(profile?.achievements ?? []).map((a) => (
               <div key={a.key} style={{
                 display: "flex", gap: 12, alignItems: "center", padding: "12px 14px",
-                background: a.unlocked ? "rgba(240,122,200,0.08)" : "rgba(11,8,23,0.5)",
-                border: `1px solid ${a.unlocked ? "rgba(240,122,200,0.4)" : "rgba(167,139,250,0.12)"}`,
+                background: a.unlocked ? "rgba(213,139,232,0.08)" : "rgba(8,20,40,0.5)",
+                border: `1px solid ${a.unlocked ? "rgba(213,139,232,0.4)" : "rgba(122,75,168,0.12)"}`,
                 clipPath: "polygon(10px 0%, 100% 0%, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0% 100%, 0% 10px)",
                 opacity: a.unlocked ? 1 : 0.55,
               }}>
                 <div style={{
                   width: 38, height: 38, display: "grid", placeItems: "center", fontSize: 18,
                   color: a.unlocked ? "var(--pink-soft)" : "var(--text-faint)",
-                  border: `1px solid ${a.unlocked ? "var(--pink)" : "rgba(167,139,250,0.2)"}`,
+                  border: `1px solid ${a.unlocked ? "var(--pink)" : "rgba(122,75,168,0.2)"}`,
                   borderRadius: "50%",
-                  boxShadow: a.unlocked ? "0 0 14px rgba(240,122,200,0.35)" : "none",
+                  boxShadow: a.unlocked ? "0 0 14px rgba(213,139,232,0.35)" : "none",
                   flexShrink: 0,
                 }}>
                   {BADGE_GLYPHS[a.key] ?? "✦"}

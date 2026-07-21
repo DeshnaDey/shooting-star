@@ -11,13 +11,25 @@ export type ApiTopic = {
 
 export type ApiConceptNode = { id: string; label: string; detail: string };
 export type ApiConceptEdge = { from: string; to: string; label: string };
-export type ApiFrame = { note: string; values: number[]; highlights: number[]; merged: number[] };
+export type ApiPointer = { label: string; index: number };
+export type ApiFrame = {
+  note: string;
+  values: number[];
+  highlights: number[];
+  merged: number[];
+  // optional, richer fields for deterministic algorithm animations
+  dim?: number[];
+  pointers?: ApiPointer[];
+  action?: string;
+};
 
+// `narration` is the spoken voice-over script for the Video Overview mode.
+// Optional for backward-compatibility with any older cached decks.
 export type ApiSlide =
-  | { kind: "mindmap"; title: string; center: string; branches: { label: string; children: string[] }[] }
-  | { kind: "definition"; title: string; terms: { term: string; formal: string; simple: string; analogy: string }[] }
-  | { kind: "flow"; title: string; nodes: ApiConceptNode[]; edges: ApiConceptEdge[] }
-  | { kind: "animation"; title: string; frames: ApiFrame[] };
+  | { kind: "mindmap"; title: string; center: string; branches: { label: string; children: string[] }[]; narration?: string }
+  | { kind: "definition"; title: string; terms: { term: string; formal: string; simple: string; analogy: string }[]; narration?: string }
+  | { kind: "flow"; title: string; nodes: ApiConceptNode[]; edges: ApiConceptEdge[]; narration?: string }
+  | { kind: "animation"; title: string; frames: ApiFrame[]; narration?: string };
 
 export type ApiConceptMap = {
   subtopicId: string; name: string; topicName: string;

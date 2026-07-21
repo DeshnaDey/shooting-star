@@ -1,8 +1,8 @@
 // Procedural visual attributes for API-driven topics/subtopics.
 // Deterministic per id so layouts are stable across reloads.
 
-export const STAR_COLORS = ["#f2a8d8", "#c4b5fd", "#f07ac8", "#fbd3ec", "#a78bfa"];
-const PLANET_COLORS = ["#f2a8d8", "#c4b5fd", "#f07ac8", "#a78bfa", "#fbd3ec", "#e0b0ff"];
+export const STAR_COLORS = ["#d58be8", "#6ec9e8", "#f6d48f", "#9d6fc8", "#a3dcf0"];
+const PLANET_COLORS = ["#6ec9e8", "#d58be8", "#f6d48f", "#9d6fc8", "#a3dcf0", "#c9a7e6"];
 
 export function hashStr(s: string): number {
   let h = 2166136261;
