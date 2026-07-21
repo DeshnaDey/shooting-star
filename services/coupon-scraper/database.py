@@ -62,7 +62,6 @@ class User(Base):
     email = Column(String, nullable=True)
     name = Column(String, nullable=True)
     kp_balance_cached = Column(Integer, nullable=False, default=0)
-    level = Column(String, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
 

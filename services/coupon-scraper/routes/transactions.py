@@ -1,55 +1,38 @@
-import os
-import httpx
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from database import get_db, User, RewardItem, CouponCode, PointsLedgerEntry, IS_POSTGRES, STATUS_USED
 from auth import get_current_user_id
 
 router = APIRouter(tags=["transactions"])
-_bearer = HTTPBearer(auto_error=False)
-
-BACKEND_API_BASE_URL = os.getenv("BACKEND_API_BASE_URL", "http://localhost:8000")
 
 
-def _bootstrap_user(db: Session, user_id: int, bearer_token: str | None) -> User:
+def _get_user(db: Session, user_id: int) -> User:
     """
-    This service keeps its own spendable-points ledger (see database.py's
-    module docstring), separate from the main backend's `kp` figure (which
-    is just a live sum(scores), not a spendable balance - see
-    backend/app/api/routes.py's /profile endpoint). The two aren't the same
-    concept, but a brand-new user shouldn't start at 0 here just because
-    they've never redeemed anything before.
+    This service shares the SAME `users` table as the main backend (not a
+    separate one) - a user only ever has a valid JWT because they already
+    registered/logged in through backend, which is what creates the row
+    (with email, name, password_hash all required/NOT NULL on that table).
 
-    So: the first time this service sees a user_id it doesn't have a local
-    row for, it asks the main backend (using the SAME bearer token the
-    frontend already sent) what that user's current profile kp is, and uses
-    it as this service's starting balance. After that, this service's own
-    ledger is authoritative for spending - the backend is only consulted
-    once, at first sight of a new user.
+    So this NEVER inserts a new user row - if a valid token points at a
+    user_id with no row, that's a real inconsistency to surface as an
+    error, not something to paper over by creating an incomplete row
+    (doing that previously caused a NOT NULL constraint violation on
+    email/name, which this service has no legitimate value for anyway).
+
+    New users start with kp_balance_cached=0 from the migration's column
+    default - see scripts/migrate_add_points_columns.py. For giving
+    existing users their real historical KP as a one-time starting balance
+    (rather than everyone starting at 0), see
+    scripts/backfill_initial_points.py - a one-off script, not runtime logic.
     """
     user = db.query(User).get(user_id)
-    if user:
-        return user
-
-    starting_kp = 0
-    if bearer_token:
-        try:
-            resp = httpx.get(
-                f"{BACKEND_API_BASE_URL}/api/profile",
-                headers={"Authorization": f"Bearer {bearer_token}"},
-                timeout=5,
-            )
-            if resp.status_code == 200:
-                starting_kp = resp.json().get("kp", 0)
-        except httpx.HTTPError:
-            pass  # backend unreachable - fall back to 0 rather than fail redemption entirely
-
-    user = User(id=user_id, kp_balance_cached=starting_kp)
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+    if not user:
+        raise HTTPException(
+            404,
+            "user not found - this service doesn't create users; "
+            "make sure you're registered/logged in via the main app first",
+        )
     return user
 
 
@@ -66,12 +49,10 @@ def redeem(
     req: RedeemRequest,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id),
-    creds: HTTPAuthorizationCredentials | None = Depends(_bearer),
 ):
     """
     The transaction flow (docs/PROMPT.md 2.7/2.8):
-      1. Load the user (bootstrapping from the main backend's live kp on
-         first sight, see _bootstrap_user) and the reward item
+      1. Load the user (must already exist - see _get_user) and the reward item
       2. Check balance against reward_item.kp_cost
       3. Atomically claim ONE currently-redeemable CouponCode from the pool
          (SELECT ... FOR UPDATE SKIP LOCKED on Postgres, so two concurrent
@@ -80,7 +61,7 @@ def redeem(
          in the same commit
       5. Mark the claimed code 'used', return its actual code
     """
-    user = _bootstrap_user(db, user_id, creds.credentials if creds else None)
+    user = _get_user(db, user_id)
 
     reward = db.query(RewardItem).get(req.reward_item_id)
     if not reward:
@@ -131,15 +112,11 @@ def redeem(
 
 
 @router.get("/me/points")
-def get_my_points(
-    db: Session = Depends(get_db),
-    user_id: int = Depends(get_current_user_id),
-    creds: HTTPAuthorizationCredentials | None = Depends(_bearer),
-):
+def get_my_points(db: Session = Depends(get_db), user_id: int = Depends(get_current_user_id)):
     """Renamed from /users/{user_id} - a user can now only ever read their
     OWN balance (derived from their own verified token), never anyone
     else's by guessing an id in the URL."""
-    user = _bootstrap_user(db, user_id, creds.credentials if creds else None)
+    user = _get_user(db, user_id)
     return {"id": user.id, "kp_balance": user.kp_balance_cached}
 
 
