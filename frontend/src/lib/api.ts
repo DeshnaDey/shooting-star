@@ -211,3 +211,77 @@ export const api = {
 
   latestAnalysis: (topicId: string) => request<ApiAnalysis>(`/api/topics/${topicId}/latest-analysis`),
 };
+
+// ─── Coupon-scraper client (separate service, separate port) ───────────────
+// Same auth token as the main API (JWT verification is shared - see
+// services/coupon-scraper/auth.py), different base URL since it's a
+// separately deployable service (docs/PROMPT.md 2.9).
+
+const COUPON_BASE = import.meta.env.VITE_COUPON_API_BASE_URL ?? "http://localhost:8001";
+
+export type ApiReward = {
+  id: number;
+  kind: "coupon" | "cosmetic";
+  name: string;
+  detail: string;
+  kp_cost: number;
+  brand: string | null;
+  category: string | null;
+  in_stock: boolean;
+  stock_count: number;
+  verified_hours_ago: number | null;
+};
+
+export type ApiRedeemResult = {
+  success: true;
+  code: string;
+  kp_spent: number;
+  kp_balance_after: number;
+  brand: string;
+  title: string;
+};
+
+export type ApiRedemption = {
+  reward_item_id: number | null;
+  brand: string | null;
+  title: string;
+  code: string | null;
+  kp_spent: number;
+  redeemed_at: string;
+};
+
+async function couponRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = auth.token();
+  const res = await fetch(`${COUPON_BASE}${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(init?.headers ?? {}),
+    },
+  });
+  if (res.status === 401 && !path.startsWith("/api/auth/")) {
+    auth.clear();
+    window.location.href = "/login";
+    throw new ApiError(401, "session expired");
+  }
+  if (!res.ok) {
+    const detail = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, detail?.detail ?? res.statusText);
+  }
+  return res.json();
+}
+
+export const couponApi = {
+  rewards: () => couponRequest<ApiReward[]>("/coupons"),
+
+  myPoints: () => couponRequest<{ id: number; kp_balance: number }>("/me/points"),
+
+  redeem: (rewardItemId: number) =>
+    couponRequest<ApiRedeemResult>("/redeem", {
+      method: "POST",
+      body: JSON.stringify({ reward_item_id: rewardItemId }),
+    }),
+
+  myRedemptions: () => couponRequest<ApiRedemption[]>("/me/redemptions"),
+};
