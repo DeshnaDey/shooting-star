@@ -1,4 +1,4 @@
-# apps/api — Shooting Star backend
+# backend — Shooting Star backend
 
 FastAPI + SQLAlchemy. LLM via any OpenAI-compatible endpoint (Ollama local/cloud) with deterministic mock fallback.
 
@@ -6,4 +6,4 @@ FastAPI + SQLAlchemy. LLM via any OpenAI-compatible endpoint (Ollama local/cloud
     pip install -r requirements.txt
     uvicorn app.main:app --reload    # http://localhost:8000  (docs at /docs)
 
-Config via apps/api/.env — see /.env.example. Tests: python3 -m pytest
+Config via backend/.env — see /.env.example. Tests: python3 -m pytest

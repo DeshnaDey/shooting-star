@@ -342,3 +342,13 @@ html, body, #root {
   background: var(--pink);
   animation: pulse-ring 2.2s infinite;
 }
+
+/* concept video overview: recording dot + slide fade-in */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
