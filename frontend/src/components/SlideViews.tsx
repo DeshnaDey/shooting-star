@@ -295,4 +295,5 @@ export const KIND_LABEL: Record<ApiSlide["kind"], string> = {
   definition: "DEFINITIONS",
   flow: "FLOWCHART",
   animation: "ANIMATION",
+  scene: "ANIMATION",
 };

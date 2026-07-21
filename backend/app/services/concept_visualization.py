@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 
 from app.models.models import ConceptMap, Subtopic, Topic
 from app.services.algorithm_animations import algorithm_animation_slide
+from app.services.scene_animations import scene_animation_slide
 from app.services.answer_analysis import _validate_frames
 from app.services.llm import FallbackLLM
 
@@ -74,15 +75,19 @@ real steps. Never pad with generic slides. Give every slide a narration."""
 
 
 def _inject_algorithm_slide(payload: dict, topic: Topic, subtopic: Subtopic) -> dict:
-    """If this subtopic is a known algorithm, swap in the deterministic,
-    always-correct animation (computed in code, not by the LLM). Done at read
-    time so the animation stays fresh even for previously-cached decks."""
-    algo = algorithm_animation_slide(topic.name, subtopic.name, subtopic.blurb or "")
-    if not algo:
+    """If this subtopic maps to a hand-built visual — a known algorithm (bar
+    animation) or a curated scene (DNA, atoms, waves, graphs…) — swap it in.
+    Computed in code, not by the LLM, so it's always correct. Done at read time
+    so it stays fresh even for previously-cached decks."""
+    blurb = subtopic.blurb or ""
+    built = (algorithm_animation_slide(topic.name, subtopic.name, blurb)
+             or scene_animation_slide(topic.name, subtopic.name, blurb))
+    if not built:
         return payload
-    slides = [s for s in payload.get("slides", []) if s.get("kind") != "animation"]
+    # drop any generic LLM animation/scene and insert ours right after the mindmap
+    slides = [s for s in payload.get("slides", []) if s.get("kind") not in ("animation", "scene")]
     insert_at = 1 if slides and slides[0].get("kind") == "mindmap" else 0
-    slides = slides[:insert_at] + [algo] + slides[insert_at:]
+    slides = slides[:insert_at] + [built] + slides[insert_at:]
     return {**payload, "slides": slides}
 
 

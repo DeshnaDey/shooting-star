@@ -22,7 +22,7 @@ from __future__ import annotations
 import re
 
 
-def _f(values, note, *, highlights=None, merged=None, dim=None, pointers=None, action=None) -> dict:
+def _f(values, note, *, highlights=None, merged=None, dim=None, pointers=None, action=None, ids=None) -> dict:
     frame = {
         "note": note,
         "values": [int(v) for v in values],
@@ -35,69 +35,74 @@ def _f(values, note, *, highlights=None, merged=None, dim=None, pointers=None, a
         frame["pointers"] = pointers
     if action:
         frame["action"] = action
+    if ids is not None:
+        # stable identity per position so the player can SLIDE bars on a swap
+        frame["ids"] = list(ids)
     return frame
 
 
 # ─── Sorting ──────────────────────────────────────────────────────────────────
 
 def bubble_sort(a=(5, 3, 8, 4, 2)) -> list[dict]:
-    a = list(a); n = len(a); frames = []; locked: list[int] = []
-    frames.append(_f(a, "Bubble sort walks the array, comparing each neighbouring pair and swapping when they're out of order.", action="scan"))
+    a = list(a); n = len(a); ids = list(range(n)); frames = []; locked: list[int] = []
+    frames.append(_f(a, "Bubble sort walks the array, comparing each neighbouring pair and swapping when they're out of order.", action="scan", ids=ids))
     for i in range(n - 1):
         for j in range(n - 1 - i):
             pts = [{"label": "j", "index": j}, {"label": "j+1", "index": j + 1}]
             if a[j] > a[j + 1]:
                 frames.append(_f(a, f"Compare {a[j]} and {a[j+1]} — {a[j]} > {a[j+1]}, so swap.",
-                                 highlights=[j, j + 1], merged=locked, pointers=pts, action="compare"))
+                                 highlights=[j, j + 1], merged=locked, pointers=pts, action="compare", ids=ids))
                 a[j], a[j + 1] = a[j + 1], a[j]
+                ids[j], ids[j + 1] = ids[j + 1], ids[j]
                 frames.append(_f(a, f"Swapped — {a[j]} now sits before {a[j+1]}.",
-                                 highlights=[j, j + 1], merged=locked, pointers=pts, action="swap"))
+                                 highlights=[j, j + 1], merged=locked, pointers=pts, action="swap", ids=ids))
             else:
                 frames.append(_f(a, f"Compare {a[j]} and {a[j+1]} — already in order, leave them.",
-                                 highlights=[j, j + 1], merged=locked, pointers=pts, action="keep"))
+                                 highlights=[j, j + 1], merged=locked, pointers=pts, action="keep", ids=ids))
         locked = list(range(n - 1 - i, n))
         frames.append(_f(a, f"Largest of this pass, {a[n-1-i]}, has bubbled to its final spot.",
-                         merged=locked, action="lock"))
-    frames.append(_f(a, "No swaps left — the array is fully sorted.", merged=list(range(n)), action="done"))
+                         merged=locked, action="lock", ids=ids))
+    frames.append(_f(a, "No swaps left — the array is fully sorted.", merged=list(range(n)), action="done", ids=ids))
     return frames
 
 
 def selection_sort(a=(5, 3, 8, 4, 2)) -> list[dict]:
-    a = list(a); n = len(a); frames = []
-    frames.append(_f(a, "Selection sort finds the smallest remaining value each pass and moves it to the front.", action="scan"))
+    a = list(a); n = len(a); ids = list(range(n)); frames = []
+    frames.append(_f(a, "Selection sort finds the smallest remaining value each pass and moves it to the front.", action="scan", ids=ids))
     for i in range(n - 1):
         m = i
         for j in range(i + 1, n):
             frames.append(_f(a, f"Scanning for the minimum — compare {a[j]} against current smallest {a[m]}.",
                              highlights=[j, m], merged=list(range(i)),
-                             pointers=[{"label": "min", "index": m}, {"label": "j", "index": j}], action="scan"))
+                             pointers=[{"label": "min", "index": m}, {"label": "j", "index": j}], action="scan", ids=ids))
             if a[j] < a[m]:
                 m = j
         if m != i:
             frames.append(_f(a, f"Smallest is {a[m]} — swap it into position {i}.",
-                             highlights=[i, m], merged=list(range(i)), action="swap"))
+                             highlights=[i, m], merged=list(range(i)), action="swap", ids=ids))
             a[i], a[m] = a[m], a[i]
-        frames.append(_f(a, f"{a[i]} is locked into its final position.", merged=list(range(i + 1)), action="lock"))
-    frames.append(_f(a, "Every position filled with its correct value — sorted.", merged=list(range(n)), action="done"))
+            ids[i], ids[m] = ids[m], ids[i]
+        frames.append(_f(a, f"{a[i]} is locked into its final position.", merged=list(range(i + 1)), action="lock", ids=ids))
+    frames.append(_f(a, "Every position filled with its correct value — sorted.", merged=list(range(n)), action="done", ids=ids))
     return frames
 
 
 def insertion_sort(a=(5, 3, 8, 4, 2)) -> list[dict]:
-    a = list(a); n = len(a); frames = []
-    frames.append(_f(a, "Insertion sort grows a sorted region on the left, inserting each new value into place.", merged=[0], action="scan"))
+    a = list(a); n = len(a); ids = list(range(n)); frames = []
+    frames.append(_f(a, "Insertion sort grows a sorted region on the left, inserting each new value into place.", merged=[0], action="scan", ids=ids))
     for i in range(1, n):
-        key = a[i]
+        key = a[i]; key_id = ids[i]
         frames.append(_f(a, f"Take {key} and find where it belongs in the sorted left part.",
-                         highlights=[i], merged=list(range(i)), pointers=[{"label": "key", "index": i}], action="select"))
+                         highlights=[i], merged=list(range(i)), pointers=[{"label": "key", "index": i}], action="select", ids=ids))
         j = i - 1
         while j >= 0 and a[j] > key:
             frames.append(_f(a, f"{a[j]} > {key}, shift {a[j]} one place right.",
-                             highlights=[j, j + 1], merged=list(range(i)), action="shift"))
-            a[j + 1] = a[j]
+                             highlights=[j, j + 1], merged=list(range(i)), action="shift", ids=ids))
+            a[j + 1] = a[j]; ids[j + 1] = ids[j]
             j -= 1
-        a[j + 1] = key
-        frames.append(_f(a, f"Insert {key} at position {j+1}.", highlights=[j + 1], merged=list(range(i + 1)), action="insert"))
-    frames.append(_f(a, "All values inserted into the sorted region — done.", merged=list(range(n)), action="done"))
+        a[j + 1] = key; ids[j + 1] = key_id
+        frames.append(_f(a, f"Insert {key} at position {j+1}.", highlights=[j + 1], merged=list(range(i + 1)), action="insert", ids=ids))
+    frames.append(_f(a, "All values inserted into the sorted region — done.", merged=list(range(n)), action="done", ids=ids))
     return frames
 
 

@@ -10,6 +10,7 @@ export type Frame = {
   dim?: number[];
   pointers?: Pointer[];
   action?: string;
+  ids?: number[]; // stable identity per bar → swaps slide instead of morphing
 };
 
 // Colours for the different bar states.
@@ -125,30 +126,33 @@ export default function ConceptPlayer({ frames, reveal }: { frames: Frame[]; rev
             );
           })()}
 
-          {frame.values.map((v, i) => {
+          {/* bars keyed by stable id (when present) so a swap SLIDES them */}
+          {(frame.ids ?? frame.values.map((_, i) => i)).map((id, k) => {
+            const v = frame.values[k];
             const h = (v / maxVal) * AREA;
-            const fill = merged.includes(i) ? C_LOCKED
-              : highlights.includes(i) ? C_HOT
-              : dim.includes(i) ? C_DIM
+            const hot = highlights.includes(k);
+            const fill = merged.includes(k) ? C_LOCKED
+              : hot ? C_HOT
+              : dim.includes(k) ? C_DIM
               : C_BASE;
-            const hot = highlights.includes(i);
             return (
-              <g key={i}>
+              <g key={`bar-${id}`}
+                style={{ transform: `translateX(${PAD + k * bw}px)`, transition: "transform 0.5s ease" }}>
                 <rect
-                  x={PAD + i * bw + 6}
+                  x={6}
                   y={BASELINE - h}
                   width={Math.max(2, bw - 12)}
                   height={Math.max(2, h)}
                   rx={3}
                   fill={fill}
                   style={{
-                    transition: "all 0.45s ease",
+                    transition: "height 0.45s ease, y 0.45s ease, fill 0.3s ease",
                     filter: hot ? "drop-shadow(0 0 8px rgba(246,212,143,0.8))"
-                      : merged.includes(i) ? "drop-shadow(0 0 6px rgba(127,214,162,0.5))" : "none",
+                      : merged.includes(k) ? "drop-shadow(0 0 6px rgba(127,214,162,0.5))" : "none",
                   }}
                 />
-                <text x={barCenter(i)} y={BASELINE + 16} textAnchor="middle"
-                  fill={hot ? "#fff8fd" : dim.includes(i) ? "rgba(200,220,240,0.3)" : "var(--text-dim)"}
+                <text x={bw / 2} y={BASELINE + 16} textAnchor="middle"
+                  fill={hot ? "#fff8fd" : dim.includes(k) ? "rgba(200,220,240,0.3)" : "var(--text-dim)"}
                   style={{ font: "500 11px var(--font-mono)" }}>
                   {v}
                 </text>

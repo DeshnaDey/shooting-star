@@ -21,7 +21,25 @@ export type ApiFrame = {
   dim?: number[];
   pointers?: ApiPointer[];
   action?: string;
+  ids?: number[]; // stable identity per bar so swaps slide
 };
+
+// ── Scene animations (DNA, atoms, waves, graphs…) ──
+export type SceneElement = {
+  id: string;
+  kind: "node" | "box" | "text" | "line" | "arrow";
+  x: number;
+  y: number;
+  opacity?: number;
+  // node / box
+  r?: number; w?: number; h?: number; rx?: number;
+  label?: string; color?: string; textColor?: string;
+  // text
+  text?: string; size?: number; anchor?: string; weight?: number;
+  // line / arrow
+  x2?: number; y2?: number; width?: number; dash?: string;
+};
+export type SceneFrame = { caption: string; elements: SceneElement[]; action?: string };
 
 // `narration` is the spoken voice-over script for the Video Overview mode.
 // Optional for backward-compatibility with any older cached decks.
@@ -29,7 +47,8 @@ export type ApiSlide =
   | { kind: "mindmap"; title: string; center: string; branches: { label: string; children: string[] }[]; narration?: string }
   | { kind: "definition"; title: string; terms: { term: string; formal: string; simple: string; analogy: string }[]; narration?: string }
   | { kind: "flow"; title: string; nodes: ApiConceptNode[]; edges: ApiConceptEdge[]; narration?: string }
-  | { kind: "animation"; title: string; frames: ApiFrame[]; narration?: string };
+  | { kind: "animation"; title: string; frames: ApiFrame[]; narration?: string }
+  | { kind: "scene"; title: string; width: number; height: number; frames: SceneFrame[]; narration?: string };
 
 export type ApiConceptMap = {
   subtopicId: string; name: string; topicName: string;

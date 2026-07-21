@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ApiConceptMap, ApiSlide } from "../lib/api";
 import { MindmapView, DefinitionView, FlowView, KIND_LABEL } from "./SlideViews";
 import ConceptPlayer from "./ConceptPlayer";
+import ScenePlayer from "./ScenePlayer";
 import { HudButton, MonoLabel } from "./Hud";
 
 // ─── NotebookLM-style narrated "Video Overview" ─────────────────────────────
@@ -30,6 +31,8 @@ function narrationFor(slide: ApiSlide): string {
       return `Here's how it works, step by step, from ${slide.nodes[0].label} through to ${slide.nodes[slide.nodes.length - 1].label}.`;
     case "animation":
       return `Now let's watch it run. ${slide.frames[0].note}`;
+    case "scene":
+      return `Let's watch this happen. ${slide.frames[0].caption}`;
   }
 }
 
@@ -224,6 +227,7 @@ export default function ConceptVideo({
           {slide.kind === "definition" && <DefinitionView slide={slide} reveal={reveal} />}
           {slide.kind === "flow" && <FlowView slide={slide} reveal={reveal} />}
           {slide.kind === "animation" && <ConceptPlayer frames={slide.frames} reveal={reveal} />}
+          {slide.kind === "scene" && <ScenePlayer frames={slide.frames} width={slide.width} height={slide.height} reveal={reveal} />}
         </div>
       </div>
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api, ApiConceptMap } from "../lib/api";
 import ConceptPlayer from "../components/ConceptPlayer";
+import ScenePlayer from "../components/ScenePlayer";
 import ConceptVideo from "../components/ConceptVideo";
 import { MindmapView, DefinitionView, FlowView, KIND_LABEL } from "../components/SlideViews";
 import { HudButton, HudPanel, MonoLabel } from "../components/Hud";
@@ -121,6 +122,7 @@ export default function ConceptPage() {
               {slide.kind === "definition" && <DefinitionView slide={slide} />}
               {slide.kind === "flow" && <FlowView slide={slide} />}
               {slide.kind === "animation" && <ConceptPlayer frames={slide.frames} />}
+              {slide.kind === "scene" && <ScenePlayer frames={slide.frames} width={slide.width} height={slide.height} />}
             </HudPanel>
 
             {/* deck navigation */}
