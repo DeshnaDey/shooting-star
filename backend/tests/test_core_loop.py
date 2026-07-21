@@ -73,7 +73,7 @@ def test_sky_starts_empty(client, auth):
 
 
 def test_create_topic(client, auth):
-    r = client.post("/api/topics", json={"name": "Sorting Algorithms"}, headers=auth)
+    r = client.post("/api/topics", data={"name": "Sorting Algorithms"}, headers=auth)
     assert r.status_code == 200, r.text
     t = r.json()
     assert t["id"] == "sorting-algorithms"
@@ -95,7 +95,7 @@ def test_topics_are_private(client, auth):
 # ─── Core loop ───────────────────────────────────────────────────────────────
 
 def test_full_mcq_loop(client, auth):
-    topic = client.post("/api/topics", json={"name": "Operating Systems"}, headers=auth).json()
+    topic = client.post("/api/topics", data={"name": "Operating Systems"}, headers=auth).json()
     r = client.post("/api/attempts", json={
         "topic_id": topic["id"], "mode": "mcq", "timed": True, "num_questions": 6,
     }, headers=auth)
@@ -125,7 +125,7 @@ def test_full_mcq_loop(client, auth):
 
 
 def test_flashcard_and_long_answer(client, auth):
-    topic = client.post("/api/topics", json={"name": "Machine Learning"}, headers=auth).json()
+    topic = client.post("/api/topics", data={"name": "Machine Learning"}, headers=auth).json()
     attempt = client.post("/api/attempts", json={
         "topic_id": topic["id"], "mode": "flashcard", "num_questions": 4}, headers=auth).json()
     assert all(q["flashcard_back"] for q in attempt["questions"])
@@ -137,6 +137,41 @@ def test_flashcard_and_long_answer(client, auth):
     answers = [
         {"question_id": attempt["questions"][0]["id"],
          "response": "A detailed multi-sentence explanation of the mechanism covering steps, complexity, and a pitfall in practice for partial credit."},
+        {"question_id": attempt["questions"][1]["id"], "response": ""},
+    ]
+    graded = client.post(f"/api/attempts/{attempt['id']}/submit", json={"answers": answers}, headers=auth).json()["answers"]
+    assert graded[0]["partialCredit"] > 0
+    assert next(a for a in graded if a["response"] == "")["partialCredit"] == 0
+
+
+def test_viva_and_coding(client, auth):
+    topic = client.post("/api/topics", data={"name": "Databases"}, headers=auth).json()
+
+    attempt = client.post("/api/attempts", json={
+        "topic_id": topic["id"], "mode": "viva", "num_questions": 3}, headers=auth).json()
+    assert len(attempt["questions"]) == 3
+    for q in attempt["questions"]:
+        assert q["qtype"] == "viva"
+        assert q["starter_code"] is None and q["language"] is None
+    answers = [
+        {"question_id": attempt["questions"][0]["id"],
+         "response": "A thorough spoken explanation covering the mechanism, its complexity, and a real pitfall."},
+        {"question_id": attempt["questions"][1]["id"], "response": ""},
+    ]
+    graded = client.post(f"/api/attempts/{attempt['id']}/submit", json={"answers": answers}, headers=auth).json()["answers"]
+    assert graded[0]["partialCredit"] > 0
+    assert next(a for a in graded if a["response"] == "")["partialCredit"] == 0
+
+    attempt = client.post("/api/attempts", json={
+        "topic_id": topic["id"], "mode": "coding", "num_questions": 3}, headers=auth).json()
+    assert attempt["time_limit_s"] == 0  # untimed by default
+    for q in attempt["questions"]:
+        assert q["qtype"] == "coding"
+        assert q["starter_code"]
+        assert q["language"]
+    answers = [
+        {"question_id": attempt["questions"][0]["id"],
+         "response": "def solve(data):\n    # sort the input list in ascending order and return it\n    return sorted(data)"},
         {"question_id": attempt["questions"][1]["id"], "response": ""},
     ]
     graded = client.post(f"/api/attempts/{attempt['id']}/submit", json={"answers": answers}, headers=auth).json()["answers"]
@@ -194,3 +229,32 @@ def test_profile_and_progress(client, auth):
         "name": "Fresh", "email": "fresh@example.com", "password": "password123"})
     fresh = {"Authorization": f"Bearer {r.json()['token']}"}
     assert client.get("/api/profile", headers=fresh).json()["totalAttempts"] == 0
+
+
+# ─── Regenerate subtopics ─────────────────────────────────────────────────────
+
+def test_regenerate_subtopics(client, auth):
+    topic = client.post("/api/topics", data={"name": "Graph Theory"}, headers=auth).json()
+
+    attempt = client.post("/api/attempts", json={
+        "topic_id": topic["id"], "mode": "mcq", "num_questions": 2}, headers=auth).json()
+    answers = [{"question_id": q["id"], "response": "1", "time_taken_s": 1} for q in attempt["questions"]]
+    submit = client.post(f"/api/attempts/{attempt['id']}/submit", json={"answers": answers}, headers=auth)
+    assert submit.status_code == 200, submit.text
+
+    r = client.post(f"/api/topics/{topic['id']}/regenerate-subtopics", headers=auth)
+    assert r.status_code == 200, r.text
+    regenerated = r.json()
+    assert regenerated["id"] == topic["id"]
+    assert all(s["mastery"] == 0 for s in regenerated["subtopics"])
+    assert len(regenerated["subtopics"]) >= 2
+
+    # the previously submitted attempt's analysis is still fetchable (JSON snapshot, no live join)
+    analysis = client.get(f"/api/attempts/{attempt['id']}/analysis", headers=auth)
+    assert analysis.status_code == 200, analysis.text
+
+    # other users cannot regenerate someone else's topic
+    r = client.post("/api/auth/register", json={
+        "name": "Nosey", "email": "nosey@example.com", "password": "password123"})
+    nosey = {"Authorization": f"Bearer {r.json()['token']}"}
+    assert client.post(f"/api/topics/{topic['id']}/regenerate-subtopics", headers=nosey).status_code == 404

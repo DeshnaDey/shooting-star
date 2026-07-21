@@ -96,6 +96,8 @@ class MockProvider:
             return self._questions(user)
         if "TASK:grade_long_answer" in system:
             return self._grade(user)
+        if "TASK:grade_code" in system:
+            return self._grade(user)
         if "TASK:diagnose" in system:
             return self._diagnose(user)
         if "TASK:frames" in system:
@@ -192,6 +194,24 @@ class MockProvider:
                     "prompt": f"Explain how {name.lower()} works, step by step, and name one common pitfall.",
                     "reference_answer": f"A correct answer describes the mechanism of {name} in order, "
                                         f"states its complexity/behaviour, and names a pitfall.",
+                    "explanation": "",
+                })
+            elif qtype == "viva":
+                out.append({
+                    "subtopic_id": st["id"],
+                    "prompt": f"Walk me through how {name.lower()} works, and explain why it behaves that way.",
+                    "reference_answer": f"A correct spoken answer describes the mechanism of {name} in order, "
+                                        f"states its complexity/behaviour, and explains the reasoning.",
+                    "explanation": "",
+                })
+            elif qtype == "coding":
+                out.append({
+                    "subtopic_id": st["id"],
+                    "prompt": f"Implement {name.lower()} in the given function.",
+                    "language": "python",
+                    "starter_code": f"def solve(data):\n    # implement {name.lower()} here\n    pass",
+                    "reference_answer": f"A correct solution implements the core mechanism of {name} "
+                                        f"and produces the expected result for typical inputs.",
                     "explanation": "",
                 })
             else:  # flashcard

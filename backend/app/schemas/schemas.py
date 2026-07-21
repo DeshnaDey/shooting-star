@@ -21,7 +21,7 @@ class TopicOut(BaseModel):
 
 class CreateAttemptIn(BaseModel):
     topic_id: str
-    mode: str = Field(pattern="^(mcq|long_answer|flashcard)$")
+    mode: str = Field(pattern="^(mcq|long_answer|flashcard|viva|coding)$")
     timed: bool = False
     num_questions: int = Field(default=6, ge=2, le=15)
     focus_subtopic_id: str | None = None
@@ -36,6 +36,9 @@ class QuestionOut(BaseModel):
     choices: list[str] | None = None
     # flashcards get the back after flip; delivered upfront since self-graded
     flashcard_back: str | None = None
+    # coding only
+    starter_code: str | None = None
+    language: str | None = None
 
 class AttemptOut(BaseModel):
     id: int

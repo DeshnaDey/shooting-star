@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -16,14 +16,18 @@ from app.schemas.schemas import (
 )
 from app.services.answer_analysis import analyse
 from app.services.concept_visualization import get_concept_map
+from app.services.file_parser import extract_text
 from app.services.grading import grade_answer
 from app.services.llm import get_llm
 from app.services.quiz_generation import generate_questions
-from app.services.topic_design import create_topic
+from app.services.topic_design import create_topic, regenerate_subtopics as _regenerate_subtopics
+from app.services.web_search import search_web
 
 router = APIRouter(prefix="/api")
 
-SECONDS_PER_QUESTION = {"mcq": 45, "long_answer": 240, "flashcard": 30}
+SECONDS_PER_QUESTION = {
+    "mcq": 45, "long_answer": 240, "flashcard": 30, "viva": 240, "coding": 600,
+}
 
 
 # ─── Auth ────────────────────────────────────────────────────────────────────
@@ -103,14 +107,44 @@ def list_topics(db: Session = Depends(get_db), user: User = Depends(get_current_
     return [_topic_out(t, db, user) for t in topics]
 
 
-class CreateTopicIn(BaseModel):
-    name: str = Field(min_length=2, max_length=80)
+def _build_source_text(syllabus: UploadFile | None, use_internet: bool, name: str) -> str | None:
+    parts = []
+    if syllabus is not None:
+        content = syllabus.file.read()
+        parts.append(extract_text(syllabus.filename or "", content))
+    if use_internet:
+        web = search_web(name)
+        if web:
+            parts.append(f"--- WEB SEARCH RESULTS ---\n{web}")
+    return "\n\n".join(parts) if parts else None
 
 
 @router.post("/topics", response_model=TopicOut)
-def add_topic(body: CreateTopicIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def add_topic(
+    name: str = Form(...),
+    syllabus: UploadFile | None = File(None),
+    use_internet: bool = Form(False),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    source_text = _build_source_text(syllabus, use_internet, name)
     llm = get_llm()
-    topic = create_topic(db, llm, body.name, user.id)
+    topic = create_topic(db, llm, name, user.id, source_text=source_text)
+    return _topic_out(topic, db, user)
+
+
+@router.post("/topics/{topic_id}/regenerate-subtopics", response_model=TopicOut)
+def regenerate_subtopics(
+    topic_id: str,
+    syllabus: UploadFile | None = File(None),
+    use_internet: bool = Form(False),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    topic = _owned_topic(db, user, topic_id)
+    source_text = _build_source_text(syllabus, use_internet, topic.name)
+    llm = get_llm()
+    topic = _regenerate_subtopics(db, llm, topic, source_text=source_text)
     return _topic_out(topic, db, user)
 
 
@@ -146,6 +180,8 @@ def _attempt_out(attempt: TestAttempt, questions: list[Question], sub_names: dic
                 prompt=q.prompt,
                 choices=q.choices,
                 flashcard_back=q.reference_answer if q.qtype == "flashcard" else None,
+                starter_code=q.starter_code,
+                language=q.language,
             )
             for q in questions
         ],
@@ -187,6 +223,8 @@ def create_attempt(body: CreateAttemptIn, db: Session = Depends(get_db), user: U
             correct_index=g["correct_index"],
             reference_answer=g["reference_answer"],
             explanation=g["explanation"],
+            starter_code=g["starter_code"],
+            language=g["language"],
         )
         for g in generated
     ]

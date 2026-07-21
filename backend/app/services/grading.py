@@ -16,6 +16,16 @@ partial_credit: 1.0 fully correct, 0.5 partially correct, 0.0 wrong or empty.
 feedback: 1-3 sentences — say specifically what was right and what was missing or wrong.
 Grade on substance, not style. An empty or off-topic answer gets 0.0."""
 
+CODE_GRADE_SYSTEM = """TASK:grade_code
+You review a student's submitted source code (not its output) against a rubric describing
+the expected behaviour. Reply with ONLY:
+{"partial_credit": float 0.0-1.0, "feedback": str}
+
+partial_credit: 1.0 fully correct, 0.5 partially correct, 0.0 wrong or empty.
+feedback: 1-3 sentences — say specifically what was right and what was missing or wrong.
+Judge correctness of logic and approach against the rubric, not style, formatting, or
+naming. An empty or off-topic submission gets 0.0."""
+
 
 def grade_answer(llm: FallbackLLM, q: Question, ans: AnswerIn) -> tuple[bool, float, str]:
     """Returns (is_correct, partial_credit 0-1, feedback)."""
@@ -34,14 +44,26 @@ def grade_answer(llm: FallbackLLM, q: Question, ans: AnswerIn) -> tuple[bool, fl
         correct = bool(ans.self_correct)
         return correct, 1.0 if correct else 0.0, "Self-graded recall."
 
-    # long answer
-    if not ans.response.strip():
-        return False, 0.0, "No answer given."
-    raw = llm.complete_json(GRADE_SYSTEM, json.dumps({
-        "question": q.prompt,
-        "reference_answer": q.reference_answer,
-        "response": ans.response,
-    }))
+    # long answer / viva (same rubric-grading path)
+    if q.qtype in ("long_answer", "viva"):
+        if not ans.response.strip():
+            return False, 0.0, "No answer given."
+        raw = llm.complete_json(GRADE_SYSTEM, json.dumps({
+            "question": q.prompt,
+            "reference_answer": q.reference_answer,
+            "response": ans.response,
+        }))
+    else:
+        # coding
+        if not ans.response.strip():
+            return False, 0.0, "No submission given."
+        raw = llm.complete_json(CODE_GRADE_SYSTEM, json.dumps({
+            "question": q.prompt,
+            "language": q.language,
+            "starter_code": q.starter_code,
+            "reference_answer": q.reference_answer,
+            "response": ans.response,
+        }))
     try:
         credit = float(raw.get("partial_credit", 0.0))
     except (TypeError, ValueError):

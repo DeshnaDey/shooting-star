@@ -17,6 +17,14 @@ For qtype "long_answer" each item: {"subtopic_id": str, "prompt": str,
 "reference_answer": str (model answer / rubric), "explanation": ""}
 For qtype "flashcard" each item: {"subtopic_id": str, "prompt": str (front),
 "reference_answer": str (back), "explanation": ""}
+For qtype "viva" each item: {"subtopic_id": str, "prompt": str, "reference_answer": str
+(grading rubric), "explanation": ""} — same shape as long_answer, but these are spoken/oral
+exam questions: phrase prompts like "Explain...", "Walk me through...", "Why does...", never
+written-essay style.
+For qtype "coding" each item: {"subtopic_id": str, "prompt": str (problem statement),
+"language": str (e.g. "python"), "starter_code": str (short function signature or snippet),
+"reference_answer": str (rubric describing what a correct solution must do — this is what
+the grader checks against, never shown to the student)}
 
 Rules:
 - Every question MUST use one of the provided subtopic_ids (this tagging powers weak-point analysis).
@@ -78,6 +86,21 @@ def _validate(items: list, qtype: str, valid_ids: set[str]) -> list[dict]:
                 "subtopic_id": sid, "prompt": prompt.strip(), "choices": choices,
                 "correct_index": ci, "reference_answer": choices[ci],
                 "explanation": str(q.get("explanation", "")),
+                "starter_code": None, "language": None,
+            })
+        elif qtype == "coding":
+            ref = q.get("reference_answer")
+            language = q.get("language")
+            starter_code = q.get("starter_code")
+            if (not isinstance(ref, str) or not ref.strip()
+                    or not isinstance(language, str) or not language.strip()
+                    or not isinstance(starter_code, str) or not starter_code.strip()):
+                continue
+            out.append({
+                "subtopic_id": sid, "prompt": prompt.strip(), "choices": None,
+                "correct_index": None, "reference_answer": ref.strip(),
+                "explanation": str(q.get("explanation", "")),
+                "starter_code": starter_code.strip(), "language": language.strip(),
             })
         else:
             ref = q.get("reference_answer")
@@ -87,5 +110,6 @@ def _validate(items: list, qtype: str, valid_ids: set[str]) -> list[dict]:
                 "subtopic_id": sid, "prompt": prompt.strip(), "choices": None,
                 "correct_index": None, "reference_answer": ref.strip(),
                 "explanation": str(q.get("explanation", "")),
+                "starter_code": None, "language": None,
             })
     return out

@@ -68,6 +68,8 @@ class Question(Base):
     correct_index: Mapped[int | None] = mapped_column(Integer, nullable=True)  # mcq only (never sent to client)
     reference_answer: Mapped[str] = mapped_column(Text, default="")     # long_answer rubric / flashcard back
     explanation: Mapped[str] = mapped_column(Text, default="")
+    starter_code: Mapped[str | None] = mapped_column(Text, nullable=True)   # coding only
+    language: Mapped[str | None] = mapped_column(String(30), nullable=True)  # coding only
     attempt: Mapped[TestAttempt] = relationship(back_populates="questions")
 
 
