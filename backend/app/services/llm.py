@@ -106,7 +106,46 @@ class MockProvider:
             return self._design_topic(user)
         if "TASK:concept_map" in system:
             return self._concept_map(user)
+        if "TASK:arcade_wordbank" in system:
+            return self._arcade_wordbank(user)
         return {}
+
+    # -- deterministic arcade word bank (offline fallback) -------------------
+    def _arcade_wordbank(self, user: str) -> dict:
+        """Fabricate a valid themed-ish word bank so the Knowledge Arcade always
+        works offline. Real vocabulary comes from Ollama; this only guarantees a
+        non-empty, puzzle-valid bank (real words, good length spread)."""
+        spec = json.loads(user)
+        subs = [s.get("name") for s in spec.get("subtopics", []) if s.get("name")] or ["General"]
+        # Real English words, 4-8 letters, with clues that never contain the word.
+        pool = [
+            ("THEORY", "A proposed explanation of something"),
+            ("METHOD", "A systematic way of doing something"),
+            ("SYSTEM", "An organised whole of parts"),
+            ("MODEL", "A simplified representation"),
+            ("GRAPH", "A chart of relationships"),
+            ("LOGIC", "Sound reasoning"),
+            ("VALUE", "A quantity or worth"),
+            ("PROOF", "Established truth of a claim"),
+            ("LEVEL", "A position on a scale"),
+            ("STAGE", "A step in a process"),
+            ("FOCUS", "The centre of attention"),
+            ("SCALE", "Range or proportion"),
+            ("TREND", "A general direction of change"),
+            ("RANGE", "Extent between two limits"),
+            ("BASIS", "An underlying foundation"),
+            ("LIMIT", "A boundary that cannot be passed"),
+            ("ORDER", "Arrangement in sequence"),
+            ("PHASE", "A distinct period or step"),
+            ("CYCLE", "A repeating series of events"),
+            ("STATE", "A particular condition"),
+            ("FACTOR", "A contributing element"),
+            ("RESULT", "An outcome of a process"),
+        ]
+        words = []
+        for i, (w, clue) in enumerate(pool):
+            words.append({"word": w, "clue": clue, "subtopic": subs[i % len(subs)]})
+        return {"words": words}
 
     def _concept_map(self, user: str) -> dict:
         spec = json.loads(user)

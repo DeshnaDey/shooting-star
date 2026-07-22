@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { couponApi, ApiReward, ApiError } from "../lib/api";
 import { HudButton, HudPanel, MonoLabel, useToast } from "../components/Hud";
+import RainbowHaze from "../components/RainbowHaze";
 
 const CATEGORY_LABELS: Record<string, string> = {
   food: "FOOD", tech: "TECH", entertainment: "ENTERTAINMENT", books: "BOOKS",
@@ -100,12 +101,15 @@ export default function TradecenterPage() {
               Tradecenter
             </h1>
           </div>
-          <HudPanel style={{ padding: "12px 20px" }}>
-            <MonoLabel>YOUR BALANCE</MonoLabel>
-            <div style={{ fontSize: 26, color: "var(--pink-soft)", fontFamily: "var(--font-mono)" }}>
-              {balance ?? "—"} KP
-            </div>
-          </HudPanel>
+          <div style={{ position: "relative" }}>
+            <RainbowHaze />
+            <HudPanel style={{ padding: "12px 20px" }}>
+              <MonoLabel>YOUR BALANCE</MonoLabel>
+              <div style={{ fontSize: 26, color: "var(--pink-soft)", fontFamily: "var(--font-mono)" }}>
+                {balance ?? "—"} KP
+              </div>
+            </HudPanel>
+          </div>
         </div>
 
         {offline && (

@@ -1,12 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Stars, Html, Sparkles } from "@react-three/drei";
 import * as THREE from "three";
 import { api, ApiSubtopic, ApiTopic } from "../lib/api";
 import { planetVisual, starColor } from "../lib/visuals";
 import { makeGlowTexture } from "../components/three/helpers";
+import NebulaField from "../components/three/NebulaField";
 import { HudButton, HudPanel, MonoLabel, useToast } from "../components/Hud";
+import SpaceLoader from "../components/SpaceLoader";
 
 type TestMode = "mcq" | "long_answer" | "flashcard";
 const MODES: { id: TestMode; label: string }[] = [
@@ -111,11 +113,31 @@ function Planet({
   );
 }
 
+// ─── Intro camera — start tight on the star, pull back to reveal the system ──
+function IntroCamera({ onDone }: { onDone: () => void }) {
+  const { camera } = useThree();
+  const t = useRef(0);
+  const done = useRef(false);
+  const start = useMemo(() => new THREE.Vector3(0, 1.8, 4.6), []);
+  const end = useMemo(() => new THREE.Vector3(0, 9, 15), []);
+  useFrame((_, delta) => {
+    if (done.current) return;
+    t.current = Math.min(1, t.current + delta / 1.15);
+    const e = 1 - Math.pow(1 - t.current, 3); // easeOutCubic
+    camera.position.lerpVectors(start, end, e);
+    camera.lookAt(0, 0, 0);
+    if (t.current >= 1) { done.current = true; onDone(); }
+  });
+  return null;
+}
+
 // ─── Page ───────────────────────────────────────────────────────────────────
 export default function SolarSystemPage() {
   const { starId } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const [introDone, setIntroDone] = useState(false);
+  const hue = starId ? starColor(starId) : "#9d6fc8";
 
   const [topic, setTopic] = useState<ApiTopic | null>(null);
   const [loadState, setLoadState] = useState<"loading" | "ok" | "missing" | "offline">("loading");
@@ -159,11 +181,13 @@ export default function SolarSystemPage() {
     return (
       <div className="page-scroll" style={{ display: "grid", placeItems: "center" }}>
         <HudPanel>
-          <MonoLabel>
-            {loadState === "loading" ? "CHARTING SYSTEM…"
-              : loadState === "offline" ? "API OFFLINE — START THE BACKEND"
-              : "UNKNOWN SYSTEM"}
-          </MonoLabel>
+          {loadState === "loading" ? (
+            <SpaceLoader label="CHARTING SYSTEM…" />
+          ) : (
+            <MonoLabel>
+              {loadState === "offline" ? "API OFFLINE — START THE BACKEND" : "UNKNOWN SYSTEM"}
+            </MonoLabel>
+          )}
           {loadState !== "loading" && (
             <>
               <div style={{ height: 12 }} />
@@ -183,6 +207,7 @@ export default function SolarSystemPage() {
           <fog attach="fog" args={["#0b1c3b", 26, 55]} />
           <ambientLight intensity={0.25} />
 
+          <NebulaField />
           <Stars radius={70} depth={40} count={3500} factor={3} saturation={0.4} fade speed={0.5} />
           <Sparkles count={90} scale={30} size={1.8} speed={0.2} color="#d58be8" opacity={0.4} />
 
@@ -194,9 +219,14 @@ export default function SolarSystemPage() {
             <Planet key={s.id} sub={s} index={i} selected={selected?.id === s.id} onSelect={setSelected} />
           ))}
 
-          <OrbitControls enablePan={false} minDistance={5} maxDistance={32} />
+          {/* on entry: sit tight on the star, then pull back to reveal the system */}
+          <IntroCamera onDone={() => setIntroDone(true)} />
+          {introDone && <OrbitControls enablePan={false} minDistance={5} maxDistance={32} />}
         </Canvas>
       </div>
+
+      {/* scene resolves out of the star's colour, matching the constellation dive */}
+      <div className="system-emerge" style={{ ["--hue" as string]: hue } as CSSProperties} />
 
       <div className="overlay-ui">
         {/* header */}
@@ -228,6 +258,10 @@ export default function SolarSystemPage() {
                 <MonoLabel style={{ color: "var(--pink-soft)" }}>TEST PORTAL</MonoLabel>
               </div>
               <HudButton onClick={() => setPortalOpen(true)}>▸ TAKE A TEST</HudButton>
+              <div style={{ height: 8 }} />
+              <HudButton variant="purple" onClick={() => navigate(`/system/${topic.id}/arcade`)}>
+                ✦ KNOWLEDGE ARCADE
+              </HudButton>
             </HudPanel>
           ) : (
             <div className="zoom-in" style={{ transformOrigin: "bottom left" }}>

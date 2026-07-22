@@ -15,6 +15,7 @@ from app.schemas.schemas import (
     SubtopicOut, TopicOut,
 )
 from app.services.answer_analysis import analyse
+from app.services.arcade_generation import get_arcade
 from app.services.concept_visualization import get_concept_map
 from app.services.file_parser import extract_text
 from app.services.grading import grade_answer
@@ -22,6 +23,7 @@ from app.services.llm import get_llm
 from app.services.quiz_generation import generate_questions
 from app.services.topic_design import create_topic, regenerate_subtopics as _regenerate_subtopics
 from app.services.web_search import search_web
+from app.services.wordle_words import WORDLE_WORDS
 
 router = APIRouter(prefix="/api")
 
@@ -158,6 +160,56 @@ def subtopic_concept(subtopic_id: str, db: Session = Depends(get_db), user: User
     topic = _owned_topic(db, user, sub.topic_id)
     llm = get_llm()
     return get_concept_map(db, llm, sub, topic)
+
+
+# ─── Knowledge Arcade (word games from a studied topic) ──────────────────────
+# The LLM writes a themed word bank; Python assembles four deterministic games.
+# Leaderboard is a hardcoded friend-board (the "which star" social hook).
+
+_ARCADE_LEADERS = [
+    ("Aarav", 9200), ("Priya", 8600), ("Rohan", 8100),
+    ("Ananya", 7400), ("Vikram", 6800), ("Diya", 6100), ("Karthik", 5500),
+]
+
+
+class ArcadeScoreIn(BaseModel):
+    game: str
+    score: int
+    time_s: int = 0
+
+
+@router.get("/arcade/wordlist")
+def arcade_wordlist():
+    """Valid Wordle guesses — the client validates against real words."""
+    return {"words": sorted(WORDLE_WORDS)}
+
+
+@router.get("/arcade/{topic_id}")
+def arcade_bundle(
+    topic_id: str,
+    refresh: bool = False,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    topic = _owned_topic(db, user, topic_id)
+    subtopics = db.query(Subtopic).filter(Subtopic.topic_id == topic.id).all()
+    llm = get_llm()
+    return get_arcade(db, llm, topic, subtopics, refresh=refresh)
+
+
+@router.post("/arcade/{topic_id}/score")
+def arcade_score(
+    topic_id: str,
+    body: ArcadeScoreIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    _owned_topic(db, user, topic_id)
+    entries = [{"name": n, "score": s, "you": False} for n, s in _ARCADE_LEADERS]
+    entries.append({"name": user.name, "score": body.score, "you": True})
+    entries.sort(key=lambda e: (-e["score"], 0 if e["you"] else 1))
+    rank = next(i + 1 for i, e in enumerate(entries) if e["you"])
+    return {"game": body.game, "rank": rank, "leaderboard": entries[:10]}
 
 
 # ─── Attempts ────────────────────────────────────────────────────────────────

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { HudButton, HudPanel, MonoLabel } from "../components/Hud";
+import RainbowHaze from "../components/RainbowHaze";
 
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "11px 14px", boxSizing: "border-box",
@@ -40,7 +41,8 @@ export default function LoginPage() {
 
   return (
     <div className="page-scroll" style={{ display: "grid", placeItems: "center" }}>
-      <div style={{ width: 400, maxWidth: "92vw" }}>
+      <div style={{ width: 400, maxWidth: "92vw", position: "relative" }}>
+        <RainbowHaze />
         <div style={{ textAlign: "center", marginBottom: 22 }}>
           <h1 className="display-title" style={{
             fontSize: 40, fontStyle: "italic",

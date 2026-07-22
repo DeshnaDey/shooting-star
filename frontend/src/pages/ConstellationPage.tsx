@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Stars, Html, Line, Sparkles } from "@react-three/drei";
 import * as THREE from "three";
 import { api, ApiTopic } from "../lib/api";
 import { starColor, starPosition } from "../lib/visuals";
 import { makeGlowTexture } from "../components/three/helpers";
+import NebulaField from "../components/three/NebulaField";
 import { HudButton, HudPanel, MonoLabel, useToast } from "../components/Hud";
 
 // ─── A clickable topic star ─────────────────────────────────────────────────
@@ -160,6 +161,30 @@ function NebulaStreaks() {
   );
 }
 
+// ─── Camera dive — fly into the chosen star before entering its system ──────
+function CameraDive({
+  target, onArrive,
+}: { target: [number, number, number]; onArrive: () => void }) {
+  const { camera } = useThree();
+  const start = useRef<THREE.Vector3 | null>(null);
+  const t = useRef(0);
+  const fired = useRef(false);
+  useFrame((_, delta) => {
+    if (fired.current) return;
+    if (!start.current) start.current = camera.position.clone();
+    t.current = Math.min(1, t.current + delta / 0.72);
+    // easeInOutQuad — accelerate toward the star
+    const p = t.current < 0.5
+      ? 2 * t.current * t.current
+      : 1 - Math.pow(-2 * t.current + 2, 2) / 2;
+    const dest = new THREE.Vector3(target[0], target[1], target[2] + 2.6);
+    camera.position.lerpVectors(start.current, dest, p);
+    camera.lookAt(target[0], target[1], target[2]);
+    if (t.current >= 1) { fired.current = true; onArrive(); }
+  });
+  return null;
+}
+
 // slow ambient drift
 function DriftGroup({ children }: { children: React.ReactNode }) {
   const ref = useRef<THREE.Group>(null);
@@ -237,6 +262,23 @@ export default function ConstellationPage() {
   const [topics, setTopics] = useState<ApiTopic[] | null>(null);
   const [offline, setOffline] = useState(false);
   const [adding, setAdding] = useState(false);
+  // the star being dived into: its world position + assigned colour
+  const [zoom, setZoom] = useState<{ id: string; pos: [number, number, number]; color: string } | null>(null);
+  const navigated = useRef(false);
+
+  // Dive the camera into the chosen star (keeping its colour), then enter its system.
+  function openTopic(topic: ApiTopic, pos: [number, number, number]) {
+    if (zoom) return;
+    setZoom({ id: topic.id, pos, color: starColor(topic.id) });
+    // safety fallback in case the dive's onArrive doesn't fire
+    window.setTimeout(() => goToSystem(topic.id), 1100);
+  }
+
+  function goToSystem(id: string) {
+    if (navigated.current) return;
+    navigated.current = true;
+    navigate(`/system/${id}`);
+  }
 
   useEffect(() => {
     api.topics()
@@ -273,6 +315,7 @@ export default function ConstellationPage() {
           <pointLight position={[0, 6, 8]} intensity={40} color="#d58be8" />
           <pointLight position={[-8, -4, -6]} intensity={30} color="#7a4ba8" />
 
+          <NebulaField />
           <NebulaStreaks />
           <Stars radius={70} depth={40} count={4000} factor={3} saturation={0.4} fade speed={0.6} />
           <Sparkles count={70} scale={26} size={2.2} speed={0.25} color="#d58be8" opacity={0.5} />
@@ -295,15 +338,19 @@ export default function ConstellationPage() {
             ))}
             {(topics ?? []).map((t, i) => (
               <TopicStar key={t.id} topic={t} position={positions[i]}
-                onOpen={(topic) => navigate(`/system/${topic.id}`)} />
+                onOpen={(topic) => openTopic(topic, positions[i])} />
             ))}
             {topics !== null && !offline && (
               <PlusStar position={plusPos} onClick={() => setAdding(true)} />
             )}
           </DriftGroup>
 
-          <OrbitControls enablePan={false} minDistance={5} maxDistance={30}
-            autoRotate autoRotateSpeed={0.3} />
+          {zoom && <CameraDive target={zoom.pos} onArrive={() => goToSystem(zoom.id)} />}
+
+          {!zoom && (
+            <OrbitControls enablePan={false} minDistance={5} maxDistance={30}
+              autoRotate autoRotateSpeed={0.3} />
+          )}
         </Canvas>
       </div>
 
@@ -336,6 +383,13 @@ export default function ConstellationPage() {
         <AddTopicModal
           onClose={() => setAdding(false)}
           onCreated={(t) => { setTopics((prev) => [...(prev ?? []), t]); setAdding(false); }}
+        />
+      )}
+
+      {zoom && (
+        <div
+          className="star-dive-flash"
+          style={{ ["--hue" as string]: zoom.color } as CSSProperties}
         />
       )}
     </>

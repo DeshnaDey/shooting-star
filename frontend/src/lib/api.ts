@@ -103,6 +103,33 @@ export type ApiAnalysis = {
   answers: ApiGradedAnswer[];
 };
 
+// ─── Knowledge Arcade (word games from a studied topic) ─────────────────────
+
+export type ArcadeWordle = { answer: string; clue: string; subtopic: string };
+export type ArcadeBee = { letters: string[]; center: string; answers: string[]; pangrams: string[] };
+export type ArcadeCrosswordEntry = {
+  answer: string; clue: string; subtopic: string;
+  row: number; col: number; dir: "across" | "down"; num: number;
+};
+export type ArcadeCrossword = { rows: number; cols: number; entries: ArcadeCrosswordEntry[] };
+export type ArcadeStrandPlacement = {
+  word: string; clue: string; subtopic: string; cells: [number, number][];
+};
+export type ArcadeStrands = {
+  rows: number; cols: number; grid: string[]; theme: string;
+  words: { word: string; clue: string; subtopic: string }[];
+  placements: ArcadeStrandPlacement[];
+};
+export type ArcadeBundle = {
+  topicId: string; cached: boolean;
+  wordle: ArcadeWordle;
+  spellingbee: ArcadeBee;
+  crossword: ArcadeCrossword;
+  strands: ArcadeStrands;
+};
+export type ArcadeLeader = { name: string; score: number; you: boolean };
+export type ArcadeScoreResult = { game: string; rank: number; leaderboard: ArcadeLeader[] };
+
 // ─── Auth token (persisted so login survives refresh) ───────────────────────
 
 const TOKEN_KEY = "shooting-star.token";
@@ -180,8 +207,23 @@ export const api = {
 
   topics: () => request<ApiTopic[]>("/api/topics"),
 
-  createTopic: (name: string) =>
-    request<ApiTopic>("/api/topics", { method: "POST", body: JSON.stringify({ name }) }),
+  // The topics endpoint is a multipart form (it also accepts an optional
+  // syllabus file + internet toggle), so we send FormData, not JSON.
+  createTopic: async (name: string) => {
+    const form = new FormData();
+    form.append("name", name);
+    const token = auth.token();
+    const res = await fetch(`${BASE}/api/topics`, {
+      method: "POST",
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: form,
+    });
+    if (!res.ok) {
+      const detail = await res.json().catch(() => ({}));
+      throw new ApiError(res.status, detail?.detail ?? res.statusText);
+    }
+    return (await res.json()) as ApiTopic;
+  },
 
   profile: () => request<ApiProfile>("/api/profile"),
 
@@ -210,6 +252,18 @@ export const api = {
   getAnalysis: (attemptId: number) => request<ApiAnalysis>(`/api/attempts/${attemptId}/analysis`),
 
   latestAnalysis: (topicId: string) => request<ApiAnalysis>(`/api/topics/${topicId}/latest-analysis`),
+
+  // ── Knowledge Arcade ──
+  arcade: (topicId: string, refresh = false) =>
+    request<ArcadeBundle>(`/api/arcade/${topicId}${refresh ? "?refresh=true" : ""}`),
+
+  arcadeWordlist: () => request<{ words: string[] }>("/api/arcade/wordlist"),
+
+  arcadeScore: (topicId: string, body: { game: string; score: number; time_s: number }) =>
+    request<ArcadeScoreResult>(`/api/arcade/${topicId}/score`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 };
 
 // ─── Coupon-scraper client (separate service, separate port) ───────────────
