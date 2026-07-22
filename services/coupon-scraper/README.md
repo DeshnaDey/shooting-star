@@ -50,7 +50,7 @@ Not wired into infra/ yet since that wasn't specified. Options:
 pip install -r requirements.txt
 python seed.py               # local dev only - creates a demo user (real users come from apps/api)
 python -m scraper.runner     # one-off scrape run, populates reward_items + coupon_codes
-uvicorn main:app --reload --port 8000
+uvicorn main:app --reload --port 8001
 ```
 
 ## Testing without live network / without a real users table yet

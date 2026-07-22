@@ -22,7 +22,10 @@ venv/
 
 # App
 *.db
+*.db-journal
 .venv/
 frontend/dist/
+.frames_tmp/
+_recover/
 
 .claude/
