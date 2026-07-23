@@ -6,9 +6,7 @@ import * as THREE from "three";
 import { api, ApiSubtopic, ApiTopic } from "../lib/api";
 import { planetVisual, starColor } from "../lib/visuals";
 import { makeGlowTexture } from "../components/three/helpers";
-import NebulaField from "../components/three/NebulaField";
 import { HudButton, HudPanel, MonoLabel, useToast } from "../components/Hud";
-import SpaceLoader from "../components/SpaceLoader";
 
 type TestMode = "mcq" | "long_answer" | "flashcard";
 const MODES: { id: TestMode; label: string }[] = [
@@ -18,9 +16,8 @@ const MODES: { id: TestMode; label: string }[] = [
 ];
 
 // ─── Sun (the topic itself) ─────────────────────────────────────────────────
-function Sun({ topic }: { topic: ApiTopic }) {
+function Sun({ color }: { color: string }) {
   const ref = useRef<THREE.Mesh>(null);
-  const color = starColor(topic.id);
   const glowTex = useMemo(() => makeGlowTexture(color), [color]);
   useFrame(({ clock }) => {
     if (ref.current) {
@@ -177,23 +174,18 @@ export default function SolarSystemPage() {
     }
   }
 
-  if (loadState !== "ok" || !topic) {
+  // Only genuine errors interrupt with a panel. While the topic is still
+  // loading we render the scene straight away, so the constellation→system
+  // zoom itself IS the loading state (no separate "charting" screen).
+  if (loadState === "missing" || loadState === "offline") {
     return (
       <div className="page-scroll" style={{ display: "grid", placeItems: "center" }}>
         <HudPanel>
-          {loadState === "loading" ? (
-            <SpaceLoader label="CHARTING SYSTEM…" />
-          ) : (
-            <MonoLabel>
-              {loadState === "offline" ? "API OFFLINE — START THE BACKEND" : "UNKNOWN SYSTEM"}
-            </MonoLabel>
-          )}
-          {loadState !== "loading" && (
-            <>
-              <div style={{ height: 12 }} />
-              <HudButton onClick={() => navigate("/")}>RETURN TO CONSTELLATION</HudButton>
-            </>
-          )}
+          <MonoLabel>
+            {loadState === "offline" ? "API OFFLINE — START THE BACKEND" : "UNKNOWN SYSTEM"}
+          </MonoLabel>
+          <div style={{ height: 12 }} />
+          <HudButton onClick={() => navigate("/")}>RETURN TO CONSTELLATION</HudButton>
         </HudPanel>
       </div>
     );
@@ -202,20 +194,19 @@ export default function SolarSystemPage() {
   return (
     <>
       <div className="scene-root">
-        <Canvas camera={{ position: [0, 9, 15], fov: 55 }} dpr={[1, 2]}>
-          <color attach="background" args={["#0b1c3b"]} />
+        {/* transparent canvas so the route-hue backdrop shows through the scene */}
+        <Canvas camera={{ position: [0, 9, 15], fov: 55 }} dpr={[1, 2]} gl={{ alpha: true }}>
           <fog attach="fog" args={["#0b1c3b", 26, 55]} />
           <ambientLight intensity={0.25} />
 
-          <NebulaField />
           <Stars radius={70} depth={40} count={3500} factor={3} saturation={0.4} fade speed={0.5} />
           <Sparkles count={90} scale={30} size={1.8} speed={0.2} color="#d58be8" opacity={0.4} />
 
-          <Sun topic={topic} />
-          {topic.subtopics.map((s, i) => (
+          <Sun color={hue} />
+          {topic?.subtopics.map((s, i) => (
             <OrbitRing key={`ring-${s.id}`} radius={planetVisual(s.id, i).orbit} />
           ))}
-          {topic.subtopics.map((s, i) => (
+          {topic?.subtopics.map((s, i) => (
             <Planet key={s.id} sub={s} index={i} selected={selected?.id === s.id} onSelect={setSelected} />
           ))}
 
@@ -228,6 +219,7 @@ export default function SolarSystemPage() {
       {/* scene resolves out of the star's colour, matching the constellation dive */}
       <div className="system-emerge" style={{ ["--hue" as string]: hue } as CSSProperties} />
 
+      {topic && (
       <div className="overlay-ui">
         {/* header */}
         <div className="top-bar" style={{ paddingLeft: 160 }}>
@@ -379,6 +371,7 @@ export default function SolarSystemPage() {
           </div>
         )}
       </div>
+      )}
     </>
   );
 }

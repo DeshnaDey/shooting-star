@@ -5,6 +5,7 @@ import {
 } from "recharts";
 import { api, ApiProfile, ApiProgress, auth } from "../lib/api";
 import { HudButton, HudPanel, MonoLabel } from "../components/Hud";
+import NebulaDrift from "../components/NebulaDrift";
 
 type Period = "weekly" | "monthly" | "annual";
 const PERIODS: { id: Period; label: string }[] = [
@@ -61,6 +62,7 @@ export default function ProfilePage() {
 
   return (
     <div className="page-scroll">
+      <NebulaDrift />
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "36px 28px 80px 170px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
           <div>

@@ -42,7 +42,7 @@ export default function LoginPage() {
   return (
     <div className="page-scroll" style={{ display: "grid", placeItems: "center" }}>
       <div style={{ width: 400, maxWidth: "92vw", position: "relative" }}>
-        <RainbowHaze />
+        <RainbowHaze className="lg" />
         <div style={{ textAlign: "center", marginBottom: 22 }}>
           <h1 className="display-title" style={{
             fontSize: 40, fontStyle: "italic",

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { couponApi, ApiReward, ApiError } from "../lib/api";
 import { HudButton, HudPanel, MonoLabel, useToast } from "../components/Hud";
 import RainbowHaze from "../components/RainbowHaze";
+import NebulaDrift from "../components/NebulaDrift";
 
 const CATEGORY_LABELS: Record<string, string> = {
   food: "FOOD", tech: "TECH", entertainment: "ENTERTAINMENT", books: "BOOKS",
@@ -93,6 +94,7 @@ export default function TradecenterPage() {
 
   return (
     <div className="page-scroll">
+      <NebulaDrift />
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "36px 28px 80px 170px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 24 }}>
           <div>

@@ -3,6 +3,8 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { api, ApiTopic, ArcadeBundle, ArcadeScoreResult } from "../lib/api";
 import { HudButton, HudPanel, MonoLabel } from "../components/Hud";
 import SpaceLoader from "../components/SpaceLoader";
+import { PixelHud, PixelDecor, ArcadeAstronaut } from "../components/PixelArt";
+import NebulaDrift from "../components/NebulaDrift";
 import WordleGame from "../components/arcade/WordleGame";
 import SpellingBeeGame from "../components/arcade/SpellingBeeGame";
 import CrosswordGame from "../components/arcade/CrosswordGame";
@@ -35,6 +37,9 @@ function TopicPicker() {
 
   return (
     <div className="page-scroll arc-page">
+      <NebulaDrift />
+      <PixelDecor />
+      <ArcadeAstronaut />
       <div className="arc-topbar">
         <div>
           <div className="mono-label">KNOWLEDGE ARCADE</div>
@@ -144,6 +149,9 @@ function ArcadeForTopic({ topicId, hasStar }: { topicId: string; hasStar: boolea
 
   return (
     <div className="page-scroll arc-page">
+      <NebulaDrift />
+      <PixelDecor />
+      <ArcadeAstronaut />
       <div className="arc-topbar">
         <div>
           <button className="arc-back" onClick={() => navigate(hasStar ? `/system/${topicId}` : "/arcade")}>
@@ -152,9 +160,12 @@ function ArcadeForTopic({ topicId, hasStar }: { topicId: string; hasStar: boolea
           <div className="mono-label">KNOWLEDGE ARCADE</div>
           <h1 className="display-title" style={{ fontSize: 34, fontStyle: "italic" }}>Play the topic</h1>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          {result && <HudButton variant="ghost" onClick={() => setShowResult(true)}>▸ RESULTS</HudButton>}
-          <HudButton variant="ghost" onClick={reroll}>↻ NEW PUZZLES</HudButton>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10 }}>
+          <PixelHud lives={3} coins={Object.values(done).filter(Boolean).length * 5} />
+          <div style={{ display: "flex", gap: 8 }}>
+            {result && <HudButton variant="ghost" onClick={() => setShowResult(true)}>▸ RESULTS</HudButton>}
+            <HudButton variant="ghost" onClick={reroll}>↻ NEW PUZZLES</HudButton>
+          </div>
         </div>
       </div>
 
