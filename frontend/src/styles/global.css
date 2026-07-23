@@ -630,34 +630,37 @@ html, body, #root {
 }
 @keyframes sl-spin { to { transform: rotate(360deg); } }
 
-/* Constellation → system: the dived-into star's colour swells to fill screen */
+/* Constellation → system: the star's colour fills the WHOLE screen (bright core
+   + opaque hue edges) so the scene cut is completely hidden — a smooth handoff. */
 .star-dive-flash {
   position: fixed; inset: 0; z-index: 80; pointer-events: none;
   background: radial-gradient(circle at 50% 50%,
-    var(--hue) 0%,
-    color-mix(in srgb, var(--hue) 55%, transparent) 42%,
-    transparent 76%);
+    #ffffff 0%,
+    var(--hue) 34%,
+    color-mix(in srgb, var(--hue) 72%, #0b1226) 100%);
   opacity: 0;
   animation: dive-flash 0.72s ease-in forwards;
 }
 @keyframes dive-flash {
-  0%  { opacity: 0; }
-  60% { opacity: 0.25; }
-  100% { opacity: 0.92; }
+  0%   { opacity: 0; }
+  55%  { opacity: 0.6; }
+  100% { opacity: 1; }
 }
 
-/* System entrance: the scene resolves out of that same star colour */
+/* System entrance: holds that same full-screen star colour, then fades to
+   reveal the scene as the camera pulls back. */
 .system-emerge {
   position: fixed; inset: 0; z-index: 80; pointer-events: none;
   background: radial-gradient(circle at 50% 50%,
-    var(--hue) 0%,
-    color-mix(in srgb, var(--hue) 45%, transparent) 42%,
-    transparent 76%);
-  opacity: 0.92;
-  animation: system-emerge 0.85s ease-out forwards;
+    #ffffff 0%,
+    var(--hue) 34%,
+    color-mix(in srgb, var(--hue) 72%, #0b1226) 100%);
+  opacity: 1;
+  animation: system-emerge 1.05s ease-out forwards;
 }
 @keyframes system-emerge {
-  0%   { opacity: 0.92; }
+  0%   { opacity: 1; }
+  24%  { opacity: 1; }
   100% { opacity: 0; }
 }
 

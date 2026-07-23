@@ -40,6 +40,6 @@ export function planetVisual(subtopicId: string, index: number): PlanetVisual {
     color: PLANET_COLORS[h % PLANET_COLORS.length],
     size: 0.3 + ((h >> 3) % 5) * 0.045,
     orbit: 3.2 + index * 1.3,
-    speed: 0.42 * Math.pow(0.82, index),
+    speed: 0.16 * Math.pow(0.82, index),
   };
 }
