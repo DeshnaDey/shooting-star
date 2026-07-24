@@ -37,7 +37,7 @@ function TopicPicker() {
 
   return (
     <div className="page-scroll arc-page">
-      <NebulaDrift />
+      <NebulaDrift variant="spiral" />
       <PixelDecor />
       <ArcadeAstronaut />
       <div className="arc-topbar">
@@ -149,7 +149,7 @@ function ArcadeForTopic({ topicId, hasStar }: { topicId: string; hasStar: boolea
 
   return (
     <div className="page-scroll arc-page">
-      <NebulaDrift />
+      <NebulaDrift variant="spiral" />
       <PixelDecor />
       <ArcadeAstronaut />
       <div className="arc-topbar">

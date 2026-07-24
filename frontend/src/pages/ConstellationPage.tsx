@@ -173,7 +173,7 @@ function CameraDive({
   useFrame((_, delta) => {
     if (fired.current) return;
     if (!start.current) start.current = camera.position.clone();
-    t.current = Math.min(1, t.current + delta / 0.72);
+    t.current = Math.min(1, t.current + delta / 0.9);
     // easeInOutQuad — accelerate toward the star
     const p = t.current < 0.5
       ? 2 * t.current * t.current

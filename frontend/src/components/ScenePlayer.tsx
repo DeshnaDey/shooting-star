@@ -17,6 +17,14 @@ const ACTION_COLOR: Record<string, string> = {
   approach: "#f6d48f", bond: "#7fd6a2", transfer: "#f6d48f", charge: "#d58be8",
   react: "#f6849a", visit: "#f6d48f", push: "#7fd6a2", pop: "#f6849a",
   fill: "#f6d48f", rotate: "#d58be8", tangent: "#f6d48f", done: "#7fd6a2",
+  // scene-library additions (splicing, math, geography, econ, cs)
+  flow: "#6ec9e8", count: "#7fd6a2", converge: "#f6d48f", subduct: "#f6849a",
+  erupt: "#f6849a", narrow: "#6ec9e8", grow: "#d58be8", neutral: "#7fd6a2",
+  melt: "#6ec9e8", boil: "#f6d48f", solid: "#a3dcf0", evaporate: "#6ec9e8",
+  condense: "#a3dcf0", precipitate: "#6ec9e8", oscillate: "#d58be8", travel: "#6ec9e8",
+  swing: "#f6d48f", rise: "#f6849a", insert: "#f6d48f", metaphase: "#a3dcf0",
+  anaphase: "#f6d48f", prophase: "#a3dcf0", rest: "#a3dcf0",
+  shells: "#6ec9e8", launch: "#f6d48f", apex: "#f6849a", fall: "#6ec9e8", bend: "#f6d48f",
 };
 
 function Label({ text, color, size, weight }: { text: string; color: string; size: number; weight: number }) {

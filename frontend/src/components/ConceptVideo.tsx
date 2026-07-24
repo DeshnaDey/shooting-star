@@ -14,6 +14,39 @@ import { HudButton, MonoLabel } from "./Hud";
 const speechSupported =
   typeof window !== "undefined" && "speechSynthesis" in window;
 
+// ─── Voice loading ──────────────────────────────────────────────────────────
+// Chrome populates getVoices() asynchronously: the first call returns [] until a
+// `voiceschanged` event fires. Speaking before a voice is chosen is what makes
+// narration silently do nothing on a fresh page load. We warm the list up once
+// and cache the best English voice for every utterance to use.
+let cachedVoices: SpeechSynthesisVoice[] = [];
+let preferredVoice: SpeechSynthesisVoice | null = null;
+
+function pickVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
+  if (!voices.length) return null;
+  const en = voices.filter((v) => v.lang && v.lang.toLowerCase().startsWith("en"));
+  const pool = en.length ? en : voices;
+  // prefer a natural-sounding, local (offline) English voice when available
+  const nice = ["samantha", "google us english", "microsoft aria", "microsoft zira", "daniel", "karen"];
+  for (const want of nice) {
+    const hit = pool.find((v) => v.name.toLowerCase().includes(want));
+    if (hit) return hit;
+  }
+  return pool.find((v) => v.localService) ?? pool[0];
+}
+
+function loadVoices() {
+  if (!speechSupported) return;
+  cachedVoices = window.speechSynthesis.getVoices();
+  preferredVoice = pickVoice(cachedVoices);
+}
+
+if (speechSupported) {
+  loadVoices();
+  // fires once the browser has the real list; also re-run defensively
+  window.speechSynthesis.addEventListener?.("voiceschanged", loadVoices);
+}
+
 /** Narration for a slide — server-provided, with a content-derived fallback so
  *  even older cached decks (pre-narration) still have something to say. */
 function narrationFor(slide: ApiSlide): string {
@@ -72,25 +105,80 @@ export default function ConceptVideo({
   const elapsedRef = useRef(0);
   const lastRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
+  // Hold a hard reference to the live utterance. Without this, Chrome garbage-
+  // collects it mid-sentence and speech cuts out (or never starts). Also track a
+  // "resume nudge" timer that works around Chrome pausing speech after ~15s.
+  const utterRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const resumeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   idxRef.current = idx;
   playingRef.current = playing;
   mutedRef.current = muted;
 
+  const clearResumeNudge = useCallback(() => {
+    if (resumeTimerRef.current != null) {
+      clearInterval(resumeTimerRef.current);
+      resumeTimerRef.current = null;
+    }
+  }, []);
+
+  // Chrome silently pauses long utterances (~15s) and after tab blur; a periodic
+  // pause/resume keeps it going without restarting the text.
+  const startResumeNudge = useCallback(() => {
+    if (!speechSupported) return;
+    const synth = window.speechSynthesis;
+    if (resumeTimerRef.current != null) clearInterval(resumeTimerRef.current);
+    resumeTimerRef.current = setInterval(() => {
+      if (!synth.speaking) {
+        if (resumeTimerRef.current != null) clearInterval(resumeTimerRef.current);
+        resumeTimerRef.current = null;
+        return;
+      }
+      synth.pause();
+      synth.resume();
+    }, 10000);
+  }, []);
+
   const speak = useCallback(
     (i: number) => {
       if (!speechSupported || mutedRef.current) return;
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(scripts[i]);
-      u.rate = 1;
-      u.pitch = 1.02;
-      window.speechSynthesis.speak(u);
+      const text = scripts[i];
+      if (!text || !text.trim()) return;
+
+      const synth = window.speechSynthesis;
+      synth.cancel(); // stop anything currently speaking/queued
+
+      const start = () => {
+        // voices may still be loading on the very first play — grab the latest
+        if (!preferredVoice) loadVoices();
+        const u = new SpeechSynthesisUtterance(text);
+        if (preferredVoice) u.voice = preferredVoice;
+        u.lang = preferredVoice?.lang || "en-US";
+        u.rate = 1;
+        u.pitch = 1.02;
+        u.volume = 1;
+        u.onend = clearResumeNudge;
+        u.onerror = clearResumeNudge;
+        utterRef.current = u; // keep a ref so it isn't GC'd mid-sentence
+        synth.speak(u);
+        startResumeNudge();
+      };
+
+      // cancel() is async in Chrome; speaking in the same tick can drop the new
+      // utterance. A near-zero timeout lets the cancel settle first.
+      if (synth.speaking || synth.pending) {
+        setTimeout(start, 60);
+      } else {
+        start();
+      }
     },
-    [scripts],
+    [scripts, clearResumeNudge, startResumeNudge],
   );
 
   const stopSpeech = useCallback(() => {
+    clearResumeNudge();
+    utterRef.current = null;
     if (speechSupported) window.speechSynthesis.cancel();
-  }, []);
+  }, [clearResumeNudge]);
 
   // land on a slide; optionally begin narrating it
   const goTo = useCallback(
@@ -150,15 +238,26 @@ export default function ConceptVideo({
     }
     setPlaying(true);
     playingRef.current = true;
-    if (elapsedRef.current === 0) speak(idxRef.current);
-    else if (speechSupported) window.speechSynthesis.resume();
-  }, [done, goTo, speak]);
+    // Fresh slide (or nothing buffered) → speak from the top; otherwise resume.
+    if (elapsedRef.current === 0 || !utterRef.current) {
+      speak(idxRef.current);
+    } else if (speechSupported && !mutedRef.current) {
+      const synth = window.speechSynthesis;
+      synth.resume();
+      startResumeNudge();
+      // if resume didn't take (utterance already ended), start it cleanly
+      setTimeout(() => {
+        if (playingRef.current && !synth.speaking && !mutedRef.current) speak(idxRef.current);
+      }, 120);
+    }
+  }, [done, goTo, speak, startResumeNudge]);
 
   const pause = useCallback(() => {
     setPlaying(false);
     playingRef.current = false;
+    clearResumeNudge(); // stop the nudge so it doesn't auto-resume us
     if (speechSupported) window.speechSynthesis.pause();
-  }, []);
+  }, [clearResumeNudge]);
 
   const toggle = useCallback(() => (playing ? pause() : play()), [playing, pause, play]);
 
