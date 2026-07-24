@@ -275,7 +275,7 @@ const COUPON_BASE = import.meta.env.VITE_COUPON_API_BASE_URL ?? "http://localhos
 
 export type ApiReward = {
   id: number;
-  kind: "coupon" | "cosmetic";
+  kind: "coupon" | "voucher" | "cosmetic";
   name: string;
   detail: string;
   kp_cost: number;
@@ -284,6 +284,14 @@ export type ApiReward = {
   in_stock: boolean;
   stock_count: number;
   verified_hours_ago: number | null;
+  expires_at: string | null;
+};
+
+export type ApiRefreshResult = {
+  success: true;
+  kp_spent: number;
+  kp_balance_after: number;
+  refreshed_count: number;
 };
 
 export type ApiRedeemResult = {
@@ -338,4 +346,6 @@ export const couponApi = {
     }),
 
   myRedemptions: () => couponRequest<ApiRedemption[]>("/me/redemptions"),
+
+  refresh: () => couponRequest<ApiRefreshResult>("/refresh", { method: "POST" }),
 };

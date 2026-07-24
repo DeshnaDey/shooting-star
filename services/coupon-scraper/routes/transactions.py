@@ -1,10 +1,19 @@
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from database import get_db, User, RewardItem, CouponCode, PointsLedgerEntry, IS_POSTGRES, STATUS_USED
+from database import get_db, User, RewardItem, CouponCode, PointsLedgerEntry, IS_POSTGRES, STATUS_ACTIVE, STATUS_USED
 from auth import get_current_user_id
 
 router = APIRouter(tags=["transactions"])
+
+REDEEMABLE_KINDS = ("coupon", "voucher")
+
+# Flat cost to manually refresh freshness on the catalog (bumps
+# last_verified_at on every active code). A real scrape run does this for
+# free on its own schedule - this lets a user trigger an early check
+# on-demand, at a small KP cost so it can't be spammed.
+REFRESH_COST_KP = 50
 
 
 def _get_user(db: Session, user_id: int) -> User:
@@ -66,8 +75,8 @@ def redeem(
     reward = db.query(RewardItem).get(req.reward_item_id)
     if not reward:
         raise HTTPException(404, "reward not found")
-    if reward.kind != "coupon":
-        raise HTTPException(400, "this reward is not a coupon-scraper item (likely a cosmetic - redeem via the cosmetics catalog instead)")
+    if reward.kind not in REDEEMABLE_KINDS:
+        raise HTTPException(400, "this reward is not redeemable through this service (likely a cosmetic - redeem via the cosmetics catalog instead)")
 
     if user.kp_balance_cached < reward.kp_cost:
         raise HTTPException(402, "insufficient KP balance")
@@ -108,6 +117,43 @@ def redeem(
         "kp_balance_after": user.kp_balance_cached,
         "brand": reward.brand,
         "title": reward.name,
+    }
+
+
+@router.post("/refresh")
+def refresh_catalog(db: Session = Depends(get_db), user_id: int = Depends(get_current_user_id)):
+    """
+    Costs REFRESH_COST_KP. Bumps last_verified_at to now on every currently-
+    active code, same effect a real scrape pass has on freshness - lets a
+    user force an early re-check instead of waiting for the next scheduled
+    scrape, at a small cost so it can't be spammed for free.
+    """
+    user = _get_user(db, user_id)
+    if user.kp_balance_cached < REFRESH_COST_KP:
+        raise HTTPException(402, "insufficient KP balance to refresh")
+
+    now = datetime.utcnow()
+    codes = db.query(CouponCode).filter(CouponCode.status == STATUS_ACTIVE).all()
+    for code in codes:
+        code.last_verified_at = now
+
+    user.kp_balance_cached -= REFRESH_COST_KP
+    db.add(PointsLedgerEntry(
+        user_id=user.id,
+        delta=-REFRESH_COST_KP,
+        reason="Catalog refresh",
+        ref_type="catalog_refresh",
+        ref_id=None,
+    ))
+
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "success": True,
+        "kp_spent": REFRESH_COST_KP,
+        "kp_balance_after": user.kp_balance_cached,
+        "refreshed_count": len(codes),
     }
 
 

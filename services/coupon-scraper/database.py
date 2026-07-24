@@ -80,9 +80,10 @@ class PointsLedgerEntry(Base):
 
 
 class RewardItem(Base):
-    """Catalog entry - one row per redeemable offer. This service creates/
-    updates 'coupon'-kind rows as it scrapes; 'cosmetic'-kind rows belong to
-    a different part of the app and this service should never write them."""
+    """Catalog entry - one row per redeemable offer.
+    kind: "coupon" (scraped brand codes) | "voucher" (this service's own
+    cashback scratchcard mechanic - not scraped, an internal reward tier)
+    | "cosmetic" (belongs to a different part of the app, never written here)."""
     __tablename__ = "reward_items"
 
     id = Column(Integer, primary_key=True)
@@ -98,6 +99,8 @@ class RewardItem(Base):
     def to_dict(self, db):
         available = [c for c in self.codes if c.is_currently_redeemable()]
         most_recent = max((c.last_verified_at for c in available), default=None)
+        expiries = [c.expires_at for c in available if c.expires_at is not None]
+        nearest_expiry = min(expiries) if expiries else None
         return {
             "id": self.id,
             "kind": self.kind,
@@ -112,6 +115,7 @@ class RewardItem(Base):
                 round((datetime.utcnow() - most_recent).total_seconds() / 3600, 1)
                 if most_recent else None
             ),
+            "expires_at": nearest_expiry.isoformat() if nearest_expiry else None,
             # actual codes are never included in catalog/list responses -
             # only handed back by POST /redeem after a successful debit
         }
