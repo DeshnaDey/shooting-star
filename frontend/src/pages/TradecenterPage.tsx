@@ -94,7 +94,7 @@ export default function TradecenterPage() {
 
   return (
     <div className="page-scroll">
-      <NebulaDrift variant="spiral" />
+      <NebulaDrift />
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "36px 28px 80px 170px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 24 }}>
           <div>

@@ -635,15 +635,16 @@ html, body, #root {
 .star-dive-flash {
   position: fixed; inset: 0; z-index: 80; pointer-events: none;
   background: radial-gradient(circle at 50% 50%,
-    #ffffff 0%,
-    var(--hue) 34%,
-    color-mix(in srgb, var(--hue) 72%, #0b1226) 100%);
+    color-mix(in srgb, var(--hue) 45%, #ffffff) 0%,
+    var(--hue) 40%,
+    color-mix(in srgb, var(--hue) 78%, #0b1226) 100%);
   opacity: 0;
-  animation: dive-flash 0.72s ease-in forwards;
+  animation: dive-flash 0.9s ease-in forwards;
 }
 @keyframes dive-flash {
   0%   { opacity: 0; }
-  55%  { opacity: 0.6; }
+  45%  { opacity: 0.45; }
+  78%  { opacity: 1; }
   100% { opacity: 1; }
 }
 
@@ -652,15 +653,15 @@ html, body, #root {
 .system-emerge {
   position: fixed; inset: 0; z-index: 80; pointer-events: none;
   background: radial-gradient(circle at 50% 50%,
-    #ffffff 0%,
-    var(--hue) 34%,
-    color-mix(in srgb, var(--hue) 72%, #0b1226) 100%);
+    color-mix(in srgb, var(--hue) 45%, #ffffff) 0%,
+    var(--hue) 40%,
+    color-mix(in srgb, var(--hue) 78%, #0b1226) 100%);
   opacity: 1;
-  animation: system-emerge 1.05s ease-out forwards;
+  animation: system-emerge 1.2s ease-out forwards;
 }
 @keyframes system-emerge {
   0%   { opacity: 1; }
-  24%  { opacity: 1; }
+  32%  { opacity: 1; }
   100% { opacity: 0; }
 }
 
@@ -681,7 +682,6 @@ html, body, #root {
 
 /* ═══ Arcade pixel-art / gamified layer ════════════════════════════════════ */
 /* CRT scanlines + faint pixel-grid over the arcade page */
-.arc-page { position: relative; }
 .arc-page::before {
   content: ""; position: fixed; inset: 0; z-index: 3; pointer-events: none;
   background:
@@ -735,19 +735,31 @@ html, body, #root {
 }
 .arc-tab.active { box-shadow: 2px 2px 0 rgba(246,212,143,0.5), inset 0 0 0 2px rgba(246,212,143,0.5); }
 
-/* ═══ Rainbow spiral galaxy in the background (arcade · tradecenter · profile) ═ */
-.nebula-drift {
-  position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden;
-  display: flex; align-items: center; justify-content: center;
+/* ═══ Rainbow nebula background ════════════════════════════════════════════ */
+.nebula-drift { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+
+/* horizontal drifting band that cuts across the screen (tradecenter · profile) */
+.nebula-drift.horizontal::before {
+  content: ""; position: absolute; left: -60%; top: 14%; width: 220%; height: 68vh;
+  background:
+    radial-gradient(22% 60% at 8% 52%, rgba(224, 95, 176, 0.34), transparent 70%),
+    radial-gradient(20% 55% at 24% 44%, rgba(246, 180, 95, 0.26), transparent 70%),
+    radial-gradient(22% 60% at 40% 56%, rgba(246, 212, 143, 0.24), transparent 70%),
+    radial-gradient(22% 60% at 56% 44%, rgba(63, 214, 192, 0.24), transparent 70%),
+    radial-gradient(22% 60% at 72% 56%, rgba(110, 201, 232, 0.30), transparent 70%),
+    radial-gradient(22% 60% at 90% 48%, rgba(157, 111, 200, 0.34), transparent 70%);
+  filter: blur(58px);
+  animation: neb-drag 46s ease-in-out infinite alternate;
 }
-.neb-galaxy {
-  width: 135vmin; height: 135vmin; opacity: 0.5;
-  transform: translate(14%, -6%);
+@keyframes neb-drag {
+  0%   { transform: translateX(-6%) translateY(-2%); }
+  100% { transform: translateX(-24%) translateY(2%); }
 }
-.neb-spin {
-  transform-box: view-box; transform-origin: 200px 200px;
-  animation: neb-rotate 120s linear infinite;
-}
+
+/* rotating spiral galaxy (arcade only) */
+.nebula-drift.spiral { display: flex; align-items: center; justify-content: center; }
+.neb-galaxy { width: 135vmin; height: 135vmin; opacity: 0.5; transform: translate(14%, -6%); }
+.neb-spin { transform-box: view-box; transform-origin: 200px 200px; animation: neb-rotate 120s linear infinite; }
 @keyframes neb-rotate { to { transform: rotate(360deg); } }
 
 /* ═══ Hero pixel astronaut (arcade) ════════════════════════════════════════ */

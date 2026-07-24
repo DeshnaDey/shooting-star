@@ -81,13 +81,20 @@ def regenerate_subtopics(db: Session, llm: FallbackLLM, topic: Topic, source_tex
 
 
 def _add_subtopics(db: Session, topic_id: str, subs: list[dict]) -> None:
+    # subtopics.id is varchar(40); the id is "{topic_id}-{slug}", so the slug
+    # can only use whatever length is left after the prefix. Postgres enforces
+    # the 40-char cap (SQLite silently ignored it), so keep every id within it.
     used: set[str] = set()
-    for s in subs:
-        sid = f"{topic_id}-{slugify(s['name'])[:24]}"
-        m = 2
+    prefix = f"{topic_id}-"
+    budget = 40 - len(prefix)  # chars available for the slug part
+    for i, s in enumerate(subs, 1):
+        slug = slugify(s["name"])[:budget] if budget > 0 else ""
+        sid = f"{prefix}{slug}"
+        if not slug or sid in used:
+            sid = f"{prefix}{i}"          # numeric fallback (always <= 40 chars)
         while sid in used:
-            sid = f"{topic_id}-{slugify(s['name'])[:22]}-{m}"
-            m += 1
+            i += 1
+            sid = f"{prefix}{i}"
         used.add(sid)
         db.add(Subtopic(id=sid, topic_id=topic_id, name=s["name"][:80], blurb=s["blurb"][:160], mastery=0))
 

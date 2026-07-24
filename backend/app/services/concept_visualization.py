@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session
 
 from app.models.models import ConceptMap, Subtopic, Topic
 from app.services.algorithm_animations import algorithm_animation_slide
-from app.services.scene_animations import scene_animation_slide
+from app.services.scene_animations import scene_animation_slide, W as SCENE_W, H as SCENE_H
 from app.services.answer_analysis import _validate_frames
 from app.services.llm import FallbackLLM
 
@@ -69,9 +69,31 @@ iterative optimisation. Definitions/taxonomies are NEVER animatable):
  "frames":[{"note":str,"values":[numbers],"highlights":[ints],"merged":[ints]}]}
 - 4-8 frames, note MAX 20 words describing that exact step, 5-8 bars, values 1-99.
 
+5. SCENE (a hand-drawn DIAGRAM THAT MOVES — use this for any real-world process
+that a bar chart can't show: a molecule reacting, a force acting, a shape being
+built, a system with parts moving. This is what makes it feel like an animated
+explainer video, so prefer it over ANIMATION whenever the concept is visual):
+{"kind":"scene","title":str,"narration":str,"width":580,"height":320,
+ "frames":[{"caption":str,"action":str,"elements":[ ...elements... ]}]}
+Coordinate space is width 580 (x, left→right) by 320 (y, top→bottom).
+Element shapes (each MUST have a stable "id"):
+  {"id":str,"kind":"node","x":num,"y":num,"r":num,"label":str,"color":"#rrggbb","textColor":"#rrggbb"}   circle w/ label
+  {"id":str,"kind":"box","x":num,"y":num,"w":num,"h":num,"label":str,"color":"#rrggbb","textColor":"#rrggbb"}  rounded rect
+  {"id":str,"kind":"text","x":num,"y":num,"text":str,"color":"#rrggbb","size":num,"weight":num}
+  {"id":str,"kind":"line","x":num,"y":num,"x2":num,"y2":num,"color":"#rrggbb","width":num}
+  {"id":str,"kind":"arrow","x":num,"y":num,"x2":num,"y2":num,"color":"#rrggbb"}   line w/ arrowhead
+KEY TRICK: reuse the SAME id for the same object across frames and just change its
+x/y — the frontend then SLIDES it smoothly (that's how you show something moving).
+Give things that appear fade in with a new id; things that leave get dropped.
+- 3-6 frames, caption MAX 18 words. 3-9 elements per frame. Keep x in 20..560,
+  y in 20..300 so nothing clips. "action" is a one-word label for the step
+  (e.g. "bind","split","flow","grow","done"); optional.
+Colors to use: blue #6ec9e8, green #7fd6a2, gold #f6d48f, pink #d58be8, red #f6849a.
+
 Deck rules: slide 1 = mindmap. Then choose the 1-4 other slides that genuinely
-teach THIS subtopic best. Be specific and content-rich — real facts, real terms,
-real steps. Never pad with generic slides. Give every slide a narration."""
+teach THIS subtopic best; include at MOST one ANIMATION or SCENE (prefer SCENE
+for visual/physical processes). Be specific and content-rich — real facts, real
+terms, real steps. Never pad with generic slides. Give every slide a narration."""
 
 
 def _inject_algorithm_slide(payload: dict, topic: Topic, subtopic: Subtopic) -> dict:
@@ -148,7 +170,7 @@ def _validate_slides(raw: dict) -> list[dict]:
     if not isinstance(slides_in, list):
         return []
     out: list[dict] = []
-    seen_animation = False
+    seen_motion = False  # at most one animated visual (bar animation OR scene)
     for s in slides_in[:6]:
         if not isinstance(s, dict):
             continue
@@ -160,9 +182,12 @@ def _validate_slides(raw: dict) -> list[dict]:
             v = _v_definition(s)
         elif kind == "flow":
             v = _v_flow(s)
-        elif kind == "animation" and not seen_animation:
+        elif kind == "animation" and not seen_motion:
             v = _v_animation(s)
-            seen_animation = v is not None
+            seen_motion = v is not None
+        elif kind == "scene" and not seen_motion:
+            v = _v_scene(s)
+            seen_motion = v is not None
         if v:
             out.append(v)
     # a deck must lead with a mindmap; tolerate wrong ordering by re-sorting
@@ -286,6 +311,126 @@ def _v_animation(s: dict) -> dict | None:
         "kind": "animation",
         "title": _clip(s.get("title", "Watch it run"), 8, 60) or "Watch it run",
         "frames": dumped,
+        "narration": _narration(s, derived),
+    }
+
+
+import re
+
+_HEX = re.compile(r"^#[0-9a-fA-F]{3,8}$")
+_RGB = re.compile(r"^rgba?\([\d.,\s%]+\)$")
+_SCENE_KINDS = {"node", "box", "text", "line", "arrow"}
+
+
+def _num(v, lo: float, hi: float, default: float) -> float:
+    """Coerce to a float clamped into [lo, hi]; fall back to default on garbage."""
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return default
+    if f != f:  # NaN
+        return default
+    return max(lo, min(hi, f))
+
+
+def _color(v, default: str) -> str:
+    if isinstance(v, str) and (_HEX.match(v) or _RGB.match(v)) and len(v) <= 32:
+        return v
+    return default
+
+
+def _v_element(e: dict, idx: int) -> dict | None:
+    """Validate + clamp a single scene element so bad model output still renders
+    safely on the canvas (nothing off-screen, no unsafe colour strings)."""
+    if not isinstance(e, dict):
+        return None
+    kind = e.get("kind")
+    if kind not in _SCENE_KINDS:
+        return None
+    eid = str(e.get("id", "") or f"e{idx}")[:24]
+    x = _num(e.get("x"), 20, SCENE_W - 20, SCENE_W / 2)
+    y = _num(e.get("y"), 20, SCENE_H - 20, SCENE_H / 2)
+    op = _num(e.get("opacity", 1), 0, 1, 1)
+    out = {"id": eid, "kind": kind, "x": x, "y": y, "opacity": op}
+
+    if kind in ("line", "arrow"):
+        out["x2"] = _num(e.get("x2"), 0, SCENE_W, x)
+        out["y2"] = _num(e.get("y2"), 0, SCENE_H, y)
+        out["color"] = _color(e.get("color"), "#6ec9e8")
+        out["width"] = _num(e.get("width", 2), 1, 8, 2)
+        dash = e.get("dash")
+        if isinstance(dash, str) and re.match(r"^[\d\s]{1,12}$", dash):
+            out["dash"] = dash
+        return out
+
+    if kind == "text":
+        text = str(e.get("text", "")).strip()[:60]
+        if not text:
+            return None
+        out["text"] = text
+        out["color"] = _color(e.get("color"), "#cfe4f5")
+        out["size"] = _num(e.get("size", 12), 8, 40, 12)
+        out["weight"] = int(_num(e.get("weight", 400), 100, 900, 400))
+        anchor = e.get("anchor")
+        out["anchor"] = anchor if anchor in ("start", "middle", "end") else "middle"
+        return out
+
+    if kind == "box":
+        out["w"] = _num(e.get("w", 54), 12, SCENE_W - 20, 54)
+        out["h"] = _num(e.get("h", 30), 12, SCENE_H - 20, 30)
+        out["rx"] = _num(e.get("rx", 6), 0, 40, 6)
+        out["label"] = str(e.get("label", ""))[:24]
+        out["color"] = _color(e.get("color"), "#9d6fc8")
+        out["textColor"] = _color(e.get("textColor"), "#ffffff")
+        return out
+
+    # node
+    out["r"] = _num(e.get("r", 16), 4, 120, 16)
+    out["label"] = str(e.get("label", ""))[:20]
+    out["color"] = _color(e.get("color"), "#6ec9e8")
+    out["textColor"] = _color(e.get("textColor"), "#08131f")
+    return out
+
+
+def _v_scene(s: dict) -> dict | None:
+    """Validate an LLM-authored 'scene' slide. Clamps every coordinate to the
+    canvas and sanitises colours, so even a weak model produces a scene that
+    renders without clipping or breaking the SVG. Returns None if unsalvageable."""
+    frames_in = s.get("frames")
+    if not isinstance(frames_in, list) or len(frames_in) < 2:
+        return None
+    frames: list[dict] = []
+    for f in frames_in[:8]:
+        if not isinstance(f, dict):
+            continue
+        els_in = f.get("elements")
+        if not isinstance(els_in, list):
+            continue
+        els = []
+        for i, e in enumerate(els_in[:12]):
+            ve = _v_element(e, i)
+            if ve:
+                els.append(ve)
+        if not els:
+            continue
+        frame = {"caption": _clip(f.get("caption", ""), 18, 130) or "…", "elements": els}
+        action = f.get("action")
+        if isinstance(action, str) and action.strip():
+            frame["action"] = action.strip().lower()[:16]
+        frames.append(frame)
+    if len(frames) < 2:
+        return None
+    derived = (
+        "Let's watch this happen. "
+        f"{frames[0]['caption'].rstrip('.')}. "
+        f"Follow it through all {len(frames)} steps to the end."
+    )
+    return {
+        "kind": "scene",
+        "title": _clip(s.get("title", "Watch it happen"), 8, 60) or "Watch it happen",
+        "width": SCENE_W,
+        "height": SCENE_H,
+        "frames": frames,
         "narration": _narration(s, derived),
     }
 

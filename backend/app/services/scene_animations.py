@@ -491,9 +491,409 @@ def derivative_tangent():
     return frames
 
 
+def rna_splicing():
+    """Pre-mRNA is cut: introns loop out and are removed, exons join up. This is
+    the 'string being cut, exons and introns separating' the demo asks for."""
+    y = 150
+    # pre-mRNA laid out as alternating exon / intron segments
+    segs = [("e1", "Exon 1", GREEN, True), ("i1", "Intron 1", "#5a4a78", False),
+            ("e2", "Exon 2", GREEN, True), ("i2", "Intron 2", "#5a4a78", False),
+            ("e3", "Exon 3", GREEN, True)]
+    xs = [100, 185, 270, 355, 440]
+
+    def strand(positions, dim_introns=False, hide_introns=False):
+        els = []
+        for (eid, lbl, col, is_exon), x in zip(segs, positions):
+            if not is_exon and hide_introns:
+                continue
+            op = 0.28 if (not is_exon and dim_introns) else 1.0
+            els.append(box(eid, x, y, 74, 34, lbl, col, "#08131f" if is_exon else "#cbb8e8", rx=6, opacity=op))
+        return els
+
+    frames = [fr("A fresh pre-mRNA is one long string: coding EXONS (green) interrupted by non-coding INTRONS.",
+                 strand(xs) + [line("bb", 63, y, 477, y, PALE, 3, opacity=0.0)], "scan")]
+    # spliceosome recognises the intron boundaries
+    frames.append(fr("The spliceosome docks onto each intron, grabbing it at both ends.",
+                     strand(xs) + [node("sp1", 185, y - 44, "spliceo\nsome", 24, GOLD, "#08131f"),
+                                   node("sp2", 355, y - 44, "spliceo\nsome", 24, GOLD, "#08131f")], "bind"))
+    # introns loop up and out (lariat), exons stay put
+    loop_pos = [100, 185, 270, 355, 440]
+    frames.append(fr("Each intron bulges up into a loop (a 'lariat') and is snipped free of the exons.",
+                     [box("e1", 100, y, 74, 34, "Exon 1", GREEN, "#08131f"),
+                      box("i1", 185, 70, 74, 30, "Intron 1", "#5a4a78", "#cbb8e8", opacity=0.9),
+                      box("e2", 270, y, 74, 34, "Exon 2", GREEN, "#08131f"),
+                      box("i2", 355, 70, 74, 30, "Intron 2", "#5a4a78", "#cbb8e8", opacity=0.9),
+                      box("e3", 440, y, 74, 34, "Exon 3", GREEN, "#08131f"),
+                      arrow("c1", 185, y - 18, 185, 90, RED), arrow("c2", 355, y - 18, 355, 90, RED),
+                      txt("cut", 290, 250, "✂ introns cut out", RED, 12, weight=700)], "split"))
+    # introns discarded
+    frames.append(fr("The introns are discarded — thrown away as junk.",
+                     [box("e1", 100, y, 74, 34, "Exon 1", GREEN, "#08131f"),
+                      box("i1", 185, 40, 74, 26, "Intron 1", "#5a4a78", "#cbb8e8", opacity=0.15),
+                      box("e2", 270, y, 74, 34, "Exon 2", GREEN, "#08131f"),
+                      box("i2", 355, 40, 74, 26, "Intron 2", "#5a4a78", "#cbb8e8", opacity=0.15),
+                      box("e3", 440, y, 74, 34, "Exon 3", GREEN, "#08131f")], "release"))
+    # exons slide together into mature mRNA
+    frames.append(fr("The exons slide together and join into one continuous strand — the mature mRNA.",
+                     [box("e1", 195, y, 74, 34, "Exon 1", GREEN, "#08131f"),
+                      box("e2", 271, y, 74, 34, "Exon 2", GREEN, "#08131f"),
+                      box("e3", 347, y, 74, 34, "Exon 3", GREEN, "#08131f"),
+                      txt("m", 290, 100, "MATURE mRNA", GREEN, 13, weight=700),
+                      txt("r", 290, 250, "ready to leave the nucleus and be translated", PALE, 12)], "done"))
+    return frames
+
+
+# ══ 5th-GRADE MATH ═══════════════════════════════════════════════════════════
+
+def fraction_addition():
+    """1/2 + 1/4 = 3/4, using fraction bars with a common denominator."""
+    def bar(id_prefix, x0, y, parts, filled, w=240):
+        seg = w / parts
+        els = []
+        for i in range(parts):
+            col = BLUE if i < filled else "rgba(110,201,232,0.12)"
+            els.append(box(f"{id_prefix}{i}", x0 + seg * i + seg / 2, y, seg - 4, 34, "", col, rx=4))
+        return els
+    frames = [fr("We want to add one half and one quarter. First, picture each as a bar.",
+                 bar("a", 170, 110, 2, 1) + [txt("la", 130, 110, "1/2", BLUE, 15, weight=700, anchor="end")] +
+                 bar("b", 170, 180, 4, 1) + [txt("lb", 130, 180, "1/4", GOLD, 15, weight=700, anchor="end")], "scan")]
+    frames.append(fr("The pieces are different sizes, so we can't add yet — we need the SAME size pieces.",
+                     bar("a", 170, 110, 2, 1) + bar("b", 170, 180, 4, 1) +
+                     [txt("q", 290, 250, "make the denominators match", PALE, 12)], "scan"))
+    frames.append(fr("Cut the half into two quarters: 1/2 is the same as 2/4.",
+                     bar("a", 170, 110, 4, 2) + [txt("la", 130, 110, "2/4", BLUE, 15, weight=700, anchor="end")] +
+                     bar("b", 170, 180, 4, 1) + [txt("lb", 130, 180, "1/4", GOLD, 15, weight=700, anchor="end")], "split"))
+    frames.append(fr("Now both are in quarters: 2/4 + 1/4 = 3/4. Three quarters shaded in all.",
+                     bar("c", 170, 150, 4, 3) + [txt("sum", 290, 250, "1/2 + 1/4 = 3/4", GREEN, 16, weight=700)], "done"))
+    return frames
+
+
+def place_value():
+    n = "3457"
+    cols = [("Thousands", "3", "3000", PURPLE), ("Hundreds", "4", "400", BLUE),
+            ("Tens", "5", "50", GOLD), ("Ones", "7", "7", GREEN)]
+    xs = [130, 250, 370, 470]
+    frames = [fr("Take the number 3457. Every digit's value depends on its place.",
+                 [txt("n", 290, 90, "3 4 5 7", "#fff", 34, weight=700)], "scan")]
+    base = []
+    for (name, d, val, col), x in zip(cols, xs):
+        base.append(box(f"c{x}", x, 150, 66, 66, d, col, "#08131f"))
+        base.append(txt(f"h{x}", x, 105, name, PALE, 10, weight=600))
+    frames.append(fr("Line up the places: thousands, hundreds, tens, ones.", base, "fill"))
+    vals = []
+    for (name, d, val, col), x in zip(cols, xs):
+        vals.append(txt(f"v{x}", x, 220, val, col, 15, weight=700))
+    frames.append(fr("Each digit is really that many of its place: 3000, 400, 50 and 7.", base + vals, "fill"))
+    frames.append(fr("Add the place values back up: 3000 + 400 + 50 + 7 = 3457.",
+                     base + vals + [txt("s", 290, 270, "3000 + 400 + 50 + 7 = 3457", GREEN, 14, weight=700)], "done"))
+    return frames
+
+
+def multiplication_array():
+    rows, cent = 3, 4
+    frames = [fr("What is 3 times 4? Think of it as 3 rows with 4 in each row.",
+                 [txt("t", 290, 80, "3 × 4 = ?", GOLD, 20, weight=700)], "scan")]
+    dots = []
+    for r in range(rows):
+        for c in range(cent):
+            dots.append(node(f"d{r}{c}", 210 + c * 46, 120 + r * 46, "", 14, BLUE))
+        frames.append(fr(f"Build row {r + 1}: four dots. That's {(r + 1)} row{'s' if r else ''} so far.",
+                         list(dots), "count"))
+    frames.append(fr("Count them all: 3 rows of 4 makes 12. So 3 × 4 = 12.",
+                     list(dots) + [txt("s", 290, 285, "3 × 4 = 12", GREEN, 18, weight=700)], "done"))
+    return frames
+
+
+def area_perimeter():
+    x0, y0, w, h = 200, 120, 180, 120
+    rect = box("r", x0 + w / 2, y0 + h / 2, w, h, "", BLUE, rx=4, opacity=0.18)
+    dims = [txt("dw", x0 + w / 2, y0 - 14, "4 units", PALE, 12), txt("dh", x0 - 22, y0 + h / 2, "3 units", PALE, 12, anchor="end")]
+    frames = [fr("A rectangle 4 units wide and 3 units tall. It has two things we can measure.", [rect] + dims, "scan")]
+    frames.append(fr("PERIMETER is the distance around the edge: 4 + 3 + 4 + 3 = 14 units.",
+                     [rect] + dims + [line("t", x0, y0, x0 + w, y0, GOLD, 4), line("b", x0, y0 + h, x0 + w, y0 + h, GOLD, 4),
+                                      line("l", x0, y0, x0, y0 + h, GOLD, 4), line("rt", x0 + w, y0, x0 + w, y0 + h, GOLD, 4),
+                                      txt("p", 290, 275, "Perimeter = 14 units", GOLD, 14, weight=700)], "scan"))
+    grid = []
+    for r in range(3):
+        for c in range(4):
+            grid.append(box(f"g{r}{c}", x0 + 22 + c * 45, y0 + 20 + r * 40, 40, 36, "", GREEN, rx=2, opacity=0.4))
+    frames.append(fr("AREA is the space inside: fill it with unit squares — 4 across × 3 down.",
+                     [rect] + dims + grid, "fill"))
+    frames.append(fr("Count the squares: 4 × 3 = 12 square units of area.",
+                     [rect] + grid + [txt("a", 290, 275, "Area = 4 × 3 = 12 sq units", GREEN, 14, weight=700)], "done"))
+    return frames
+
+
+def rounding_numberline():
+    y = 170
+    ticks = [(40 + i * 10, 90 + i * 90) for i in range(6)]  # 40..90? use 40,50 span
+    ticks = [(40, 120), (45, 290), (50, 460)]
+    base = [line("nl", 100, y, 480, y, PALE, 3)]
+    for val, x in [(40, 120), (50, 460)]:
+        base.append(node(f"t{val}", x, y, "", 5, PALE))
+        base.append(txt(f"l{val}", x, y + 28, str(val), PALE, 13, weight=700))
+    base.append(node("mid", 290, y, "", 4, DIM))
+    base.append(txt("midl", 290, y + 26, "45", DIM, 11))
+    frames = [fr("Round 47 to the nearest ten. It sits between 40 and 50.",
+                 base + [node("ball", 366, y, "47", 16, GOLD, "#08131f")], "scan")]
+    frames.append(fr("The halfway mark is 45. Anything past it rounds UP.",
+                     base + [node("ball", 366, y, "47", 16, GOLD, "#08131f"),
+                             line("half", 290, y - 40, 290, y + 10, RED, 2, dash="4 3")], "scan"))
+    frames.append(fr("47 is past 45, so it rolls up to 50.",
+                     base + [node("ball", 460, y, "50", 16, GREEN, "#08131f")], "done"))
+    return frames
+
+
+# ══ GEOGRAPHY ════════════════════════════════════════════════════════════════
+
+def earth_layers():
+    cx, cy = 250, 170
+    layers = [("Crust", 130, "rgba(126,214,162,0.18)", GREEN),
+              ("Mantle", 100, "rgba(213,139,232,0.20)", PINK),
+              ("Outer core", 66, "rgba(246,132,154,0.30)", RED),
+              ("Inner core", 34, "rgba(246,212,143,0.55)", GOLD)]
+    frames = [fr("The Earth is built in layers, like an onion. Let's go from the outside in.",
+                 [node("l0", cx, cy, "", 130, layers[0][2]), txt("t0", cx, cy - 148, "EARTH", PALE, 12, weight=700)], "scan")]
+    built = [node("l0", cx, cy, "", 130, layers[0][2])]
+    lbls_x = 440
+    for i, (name, r, fill, txtc) in enumerate(layers):
+        built = built[:] + [node(f"l{i}", cx, cy, "", r, fill)]
+        built.append(txt(f"n{i}", lbls_x, 110 + i * 34, name, txtc, 13, weight=700, anchor="start"))
+        cap = {0: "The CRUST is the thin, solid rock we live on.",
+               1: "The MANTLE below is hot, slow-flowing rock.",
+               2: "The OUTER CORE is liquid iron — its motion makes Earth's magnetic field.",
+               3: "The INNER CORE is solid iron, squeezed by immense pressure."}[i]
+        frames.append(fr(cap, built[:], "fill"))
+    return frames
+
+
+def plate_tectonics():
+    y = 190
+    frames = [fr("Earth's crust is broken into huge plates that slowly drift on the mantle.",
+                 [box("p1", 160, y, 200, 60, "Plate A", "#7f8fb0", "#08131f"),
+                  box("p2", 420, y, 200, 60, "Plate B", "#9d7f6f", "#08131f"),
+                  txt("m", 290, 270, "molten mantle below", RED, 11)], "scan")]
+    frames.append(fr("Here two plates move TOWARD each other — a convergent boundary.",
+                     [box("p1", 210, y, 200, 60, "Plate A", "#7f8fb0", "#08131f"),
+                      box("p2", 380, y, 200, 60, "Plate B", "#9d7f6f", "#08131f"),
+                      arrow("a1", 120, y, 190, y, GOLD), arrow("a2", 470, y, 400, y, GOLD)], "converge"))
+    frames.append(fr("The denser ocean plate dives beneath the other — this is subduction.",
+                     [box("p2", 360, y, 200, 60, "Plate B", "#9d7f6f", "#08131f"),
+                      box("p1", 235, y + 30, 200, 60, "Plate A", "#7f8fb0", "#08131f"),
+                      arrow("d", 300, y + 4, 250, y + 40, RED)], "subduct"))
+    frames.append(fr("The crushed edge buckles upward into mountains, with volcanoes above the melt.",
+                     [box("p2", 360, y, 200, 60, "Plate B", "#9d7f6f", "#08131f"),
+                      box("p1", 235, y + 30, 200, 60, "Plate A", "#7f8fb0", "#08131f"),
+                      line("mtn1", 250, y, 300, y - 60, PALE, 4), line("mtn2", 300, y - 60, 350, y, PALE, 4),
+                      node("volc", 300, y - 60, "🌋", 16, RED, "#fff"), txt("mt", 300, 90, "mountains form", GREEN, 12, weight=700)], "done"))
+    return frames
+
+
+def volcano_eruption():
+    ground = line("g", 60, 230, 520, 230, PALE, 3)
+    mtn = [line("m1", 180, 230, 290, 90, "#8a7f6f", 5), line("m2", 290, 90, 400, 230, "#8a7f6f", 5)]
+    chamber = node("ch", 290, 300, "magma", 34, RED, "#fff")
+    conduit = line("cd", 290, 300, 290, 100, "#5a2a2a", 8)
+    frames = [fr("Deep underground sits a chamber of molten rock — magma — under great pressure.",
+                 [ground] + mtn + [chamber], "scan")]
+    frames.append(fr("Pressure forces the magma up a crack in the rock called the conduit.",
+                     [ground] + mtn + [conduit, chamber, arrow("up", 290, 260, 290, 130, GOLD)], "flow"))
+    frames.append(fr("It bursts out of the vent as an eruption — lava, ash and gas.",
+                     [ground] + mtn + [conduit, chamber,
+                      node("erupt", 290, 80, "💥", 22, GOLD, "#fff"),
+                      arrow("l1", 290, 90, 230, 150, RED), arrow("l2", 290, 90, 350, 150, RED)], "erupt"))
+    frames.append(fr("Lava cools into new rock on the slopes — that's how a volcano grows.",
+                     [ground] + mtn + [line("lava1", 290, 90, 230, 230, RED, 4), line("lava2", 290, 90, 350, 230, RED, 4),
+                      txt("d", 290, 270, "new rock builds the cone", GREEN, 12, weight=700)], "done"))
+    return frames
+
+
+def latitude_longitude():
+    cx, cy, R = 250, 170, 120
+    globe = node("g", cx, cy, "", R, "rgba(110,201,232,0.10)")
+    frames = [fr("Any place on Earth can be pinned down with two numbers: latitude and longitude.",
+                 [globe, txt("t", cx, cy - R - 16, "GLOBE", PALE, 11, weight=700)], "scan")]
+    eq = line("eq", cx - R, cy, cx + R, cy, GOLD, 2)
+    frames.append(fr("LATITUDE measures north–south from the Equator (0°) up to the poles (90°).",
+                     [globe, eq, txt("eql", cx + R + 6, cy, "Equator 0°", GOLD, 11, anchor="start")], "scan"))
+    pm = line("pm", cx, cy - R, cx, cy + R, PINK, 2)
+    frames.append(fr("LONGITUDE measures east–west from the Prime Meridian (0°).",
+                     [globe, eq, pm, txt("pml", cx, cy - R - 8, "Prime Meridian 0°", PINK, 10)], "scan"))
+    frames.append(fr("Together they cross at exactly one spot — here, 40°N, 30°E.",
+                     [globe, eq, pm, line("plat", cx - R, cy - 48, cx + R, cy - 48, DIM, 1, dash="4 3"),
+                      line("plon", cx + 55, cy - R, cx + 55, cy + R, DIM, 1, dash="4 3"),
+                      node("pt", cx + 55, cy - 48, "", 8, RED), txt("c", cx + 55, cy - 66, "40N, 30E", RED, 11, weight=700)], "done"))
+    return frames
+
+
+def atmosphere_layers():
+    bands = [("Troposphere", 250, GREEN, "weather and clouds live here"),
+             ("Stratosphere", 200, BLUE, "the ozone layer sits here; jets cruise here"),
+             ("Mesosphere", 150, PURPLE, "meteors burn up here"),
+             ("Thermosphere", 100, GOLD, "auroras glow; the ISS orbits here")]
+    ground = box("gnd", 290, 290, 520, 30, "Earth's surface", "#7fd6a2", "#08131f", rx=4, opacity=0.5)
+    frames = [fr("Air thins out as you rise. The atmosphere is stacked in layers.", [ground], "scan")]
+    built = [ground]
+    for i, (name, y, col, note) in enumerate(bands):
+        built = built[:] + [box(f"b{i}", 290, y, 480, 40, name, col, "#08131f", rx=6, opacity=0.85)]
+        frames.append(fr(f"{name}: {note}.", built[:], "fill"))
+    return frames
+
+
+# ══ ECONOMICS ════════════════════════════════════════════════════════════════
+
+def supply_demand():
+    ox, oy = 120, 250          # origin
+    ax = [line("ax", ox, oy, 500, oy, DIM, 2), line("ay", ox, 70, ox, oy, DIM, 2),
+          txt("xl", 490, oy + 16, "Quantity", PALE, 11, anchor="end"), txt("yl", ox - 10, 80, "Price", PALE, 11, anchor="end")]
+    demand = line("dem", ox + 20, 90, 460, oy - 10, BLUE, 3)   # downward (high price, low Q)
+    supply = line("sup", ox + 20, oy - 10, 460, 90, RED, 3)    # upward
+    frames = [fr("A market has two forces. DEMAND: buyers want more when the price is low.",
+                 ax + [demand, txt("dl", 470, 100, "Demand", BLUE, 11, anchor="start")], "scan")]
+    frames.append(fr("SUPPLY: sellers offer more when the price is high — the opposite slope.",
+                     ax + [demand, supply, txt("dl", 470, 100, "Demand", BLUE, 11, anchor="start"),
+                           txt("sl", 470, oy - 10, "Supply", RED, 11, anchor="start")], "scan"))
+    frames.append(fr("Where the two lines cross is EQUILIBRIUM — the price where quantity wanted = quantity offered.",
+                     ax + [demand, supply, node("eq", 290, 170, "", 8, GOLD),
+                           line("pe", ox, 170, 290, 170, DIM, 1, dash="4 3"), line("qe", 290, 170, 290, oy, DIM, 1, dash="4 3"),
+                           txt("e", 300, 160, "equilibrium", GOLD, 11, anchor="start", weight=700)], "done"))
+    frames.append(fr("If demand rises (line shifts right), the crossing moves up: higher price AND higher quantity.",
+                     ax + [supply, line("dem", ox + 90, 90, 500, oy - 10, BLUE, 3),
+                           node("eq", 350, 150, "", 8, GREEN), arrow("sh", 300, 120, 360, 120, PINK),
+                           txt("e2", 360, 140, "new equilibrium", GREEN, 11, anchor="start", weight=700)], "done"))
+    return frames
+
+
+def price_elasticity():
+    ox, oy = 120, 250
+    ax = [line("ax", ox, oy, 500, oy, DIM, 2), line("ay", ox, 70, ox, oy, DIM, 2),
+          txt("xl", 490, oy + 16, "Quantity", PALE, 11, anchor="end"), txt("yl", ox - 10, 80, "Price", PALE, 11, anchor="end")]
+    frames = [fr("Elasticity asks: when price changes, how much does quantity change?", ax, "scan")]
+    steep = line("d", 260, 90, 320, oy - 10, BLUE, 3)
+    frames.append(fr("A STEEP curve is INELASTIC: a big price drop barely changes how much people buy (e.g. medicine).",
+                     ax + [steep, line("p1", ox, 120, 275, 120, DIM, 1, dash="3 3"), line("p2", ox, 210, 305, 210, DIM, 1, dash="3 3"),
+                           node("q1", 275, 120, "", 5, GOLD), node("q2", 305, 210, "", 5, GOLD),
+                           txt("t", 330, 150, "small Δ quantity", BLUE, 11, anchor="start")], "scan"))
+    flat = line("d2", 170, 130, 470, 190, PINK, 3)
+    frames.append(fr("A FLAT curve is ELASTIC: the same price drop sends quantity way up (e.g. one brand of soda).",
+                     ax + [flat, line("p3", ox, 140, 210, 140, DIM, 1, dash="3 3"), line("p4", ox, 180, 430, 180, DIM, 1, dash="3 3"),
+                           node("q3", 210, 140, "", 5, GREEN), node("q4", 430, 180, "", 5, GREEN),
+                           txt("t2", 330, 210, "large Δ quantity", PINK, 11, anchor="start")], "done"))
+    return frames
+
+
+def circular_flow():
+    house = box("h", 140, 100, 150, 54, "Households", BLUE, "#08131f", rx=8)
+    firm = box("f", 440, 100, 150, 54, "Firms", RED, "#fff", rx=8)
+    gm = box("gm", 290, 100, 120, 40, "Goods market", GREEN, "#08131f", rx=6)
+    fm = box("fm", 290, 250, 120, 40, "Factor market", GOLD, "#08131f", rx=6)
+    frames = [fr("An economy is a loop between two players: households and firms.",
+                 [house, firm], "scan")]
+    frames.append(fr("Households supply labour and land through the FACTOR market; firms pay wages back.",
+                     [house, firm, fm, arrow("l", 140, 130, 250, 250, GOLD), arrow("w", 330, 250, 440, 130, PINK)], "cycle"))
+    frames.append(fr("Firms make goods sold in the GOODS market; households spend money to buy them.",
+                     [house, firm, fm, gm, arrow("g", 440, 90, 340, 100, GOLD), arrow("sp", 250, 100, 140, 90, PINK)], "cycle"))
+    frames.append(fr("Money flows one way, goods and labour the other — round and round forever.",
+                     [house, firm, fm, gm,
+                      arrow("l", 150, 130, 250, 250, GOLD), arrow("w", 330, 250, 430, 130, PINK),
+                      arrow("g", 430, 90, 340, 100, GOLD), arrow("sp", 250, 100, 150, 90, PINK),
+                      txt("t", 290, 175, "the circular flow", PALE, 12, weight=700)], "done"))
+    return frames
+
+
+def production_possibilities():
+    ox, oy = 130, 250
+    import math
+    ax = [line("ax", ox, oy, 470, oy, DIM, 2), line("ay", ox, 80, ox, oy, DIM, 2),
+          txt("xl", 460, oy + 16, "Guns", PALE, 11, anchor="end"), txt("yl", ox - 8, 90, "Butter", PALE, 11, anchor="end")]
+    # quarter-circle-ish frontier from (ox,90) to (450, oy)
+    curve = [node(f"c{i}", ox + (320) * math.sin(i / 20 * math.pi / 2), 90 + (oy - 90) * (1 - math.cos(i / 20 * math.pi / 2)), "", 3, BLUE) for i in range(21)]
+    frames = [fr("A country can make two things — say guns and butter. Resources are limited.", ax, "scan")]
+    frames.append(fr("The FRONTIER curve shows every combination that fully uses all resources.",
+                     ax + curve + [txt("f", 300, 120, "PPF", BLUE, 12, weight=700)], "scan"))
+    frames.append(fr("A point INSIDE the curve wastes resources — you could make more of both.",
+                     ax + curve + [node("in", 230, 210, "", 8, GOLD), txt("i", 245, 205, "inefficient", GOLD, 11, anchor="start")], "scan"))
+    frames.append(fr("A point OUTSIDE is impossible today. To make more guns, you must give up butter — that trade-off is opportunity cost.",
+                     ax + curve + [node("out", 400, 130, "", 8, RED), txt("o", 355, 120, "unattainable", RED, 11, anchor="end"),
+                                   node("on", 300, 162, "", 8, GREEN), txt("e", 315, 158, "efficient", GREEN, 11, anchor="start")], "done"))
+    return frames
+
+
+# ══ MORE COMPUTER SCIENCE ════════════════════════════════════════════════════
+
+def binary_search():
+    arr = [3, 8, 12, 19, 27, 34, 41, 55]
+    target = 34
+    xs = [110 + i * 52 for i in range(len(arr))]
+    y = 160
+
+    def row(lo, hi, mid=None, found=None):
+        els = []
+        for i, v in enumerate(arr):
+            if found is not None and i == found:
+                col = GREEN
+            elif mid is not None and i == mid:
+                col = GOLD
+            elif lo <= i <= hi:
+                col = BLUE
+            else:
+                col = "rgba(110,201,232,0.14)"
+            els.append(box(f"a{i}", xs[i], y, 44, 40, str(v), col, "#08131f"))
+        if lo <= hi and found is None:
+            els.append(txt("lo", xs[lo], y + 40, "lo", PINK, 11, weight=700))
+            els.append(txt("hi", xs[hi], y + 40, "hi", PINK, 11, weight=700))
+        return els
+
+    frames = [fr(f"Binary search finds {target} in a SORTED list by halving the range each step.",
+                 row(0, 7) + [txt("t", 290, 90, f"target = {target}", GOLD, 14, weight=700)], "scan")]
+    lo, hi = 0, 7
+    step = 0
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        step += 1
+        if arr[mid] == target:
+            frames.append(fr(f"Middle is {arr[mid]} — that's our target. Found it in {step} steps.", row(lo, hi, found=mid), "done"))
+            break
+        elif arr[mid] < target:
+            frames.append(fr(f"Middle is {arr[mid]}, too small — throw away the left half, search the right.", row(lo, hi, mid=mid), "narrow"))
+            lo = mid + 1
+        else:
+            frames.append(fr(f"Middle is {arr[mid]}, too big — throw away the right half, search the left.", row(lo, hi, mid=mid), "narrow"))
+            hi = mid - 1
+    return frames
+
+
+def big_o():
+    import math
+    ox, oy = 110, 250
+    ax = [line("ax", ox, oy, 500, oy, DIM, 2), line("ay", ox, 70, ox, oy, DIM, 2),
+          txt("xl", 490, oy + 16, "input size n", PALE, 11, anchor="end"), txt("yl", ox - 8, 80, "time", PALE, 11, anchor="end")]
+    def curve(idf, fn, col, scale):
+        pts = []
+        for i in range(31):
+            x = ox + i * 12
+            y = oy - min(oy - 75, fn(i) * scale)
+            pts.append(node(f"{idf}{i}", x, y, "", 3, col))
+        return pts
+    o1 = curve("a", lambda i: 1, GREEN, 3)
+    on = curve("b", lambda i: i, BLUE, 5)
+    on2 = curve("c", lambda i: i * i, RED, 0.18)
+    frames = [fr("Big-O describes how an algorithm's work grows as the input n grows.", ax, "scan")]
+    frames.append(fr("O(1) is constant — a flat line. Same cost no matter how big n gets (e.g. array index).",
+                     ax + o1 + [txt("l1", 470, oy - 6, "O(1)", GREEN, 12, weight=700, anchor="start")], "grow"))
+    frames.append(fr("O(n) is linear — work rises in step with n (e.g. scanning a list once).",
+                     ax + o1 + on + [txt("l2", 470, 160, "O(n)", BLUE, 12, weight=700, anchor="start")], "grow"))
+    frames.append(fr("O(n²) curves up steeply — doubling n quadruples the work (e.g. nested loops). Avoid it on big inputs.",
+                     ax + o1 + on + on2 + [txt("l3", 300, 95, "O(n²)", RED, 12, weight=700, anchor="start")], "done"))
+    return frames
+
+
 # ── registry + detection ─────────────────────────────────────────────────────
 # (keys, title, generator, narration)
 _SCENES = [
+    (("splicing", "splice", "exon", "intron", "pre-mrna", "pre mrna", "rna processing", "spliceosome"),
+     "RNA Splicing", rna_splicing,
+     "Watch the spliceosome loop each intron out of the pre-mRNA and cut it away, so the exons join into one continuous mature mRNA."),
     (("dna", "translation", "transcription", "central dogma", "protein synthesis", "gene expression", "mrna", "rna polymerase"),
      "DNA → RNA → Protein", central_dogma,
      "Watch RNA polymerase bind the DNA, transcribe it base by base into mRNA, then a ribosome and tRNA translate that code into a protein."),
@@ -524,7 +924,7 @@ _SCENES = [
     (("states of matter", "solid liquid gas", "phase change", "melting", "boiling"),
      "States of Matter", states_of_matter,
      "Watch particles break out of a rigid solid lattice into a flowing liquid and a fast, spread-out gas as heat is added."),
-    (("neutralis", "neutraliz", "acid base", "acid-base", "titration", "ph"),
+    (("neutralis", "neutraliz", "acid base", "acid-base", "titration", "ph scale", "acid and base"),
      "Acid–Base Neutralisation", neutralization,
      "Watch acid and base ions combine into water, cancelling out to leave a neutral salt solution at pH 7."),
     (("projectile", "parabolic motion", "kinematics"),
@@ -566,6 +966,62 @@ _SCENES = [
     (("derivative", "differentiation", "tangent", "slope of curve", "calculus"),
      "Derivatives", derivative_tangent,
      "Watch the tangent line slide along a curve — its slope at each point is exactly the derivative there."),
+
+    # ── 5th-grade math ──
+    (("adding fraction", "add fraction", "fraction addition", "fractions", "common denominator", "equivalent fraction"),
+     "Adding Fractions", fraction_addition,
+     "Watch one half get cut into two quarters so it can be added to a quarter, giving three quarters."),
+    (("place value", "place-value", "expanded form", "ones tens hundreds", "digit value"),
+     "Place Value", place_value,
+     "Watch the number 3457 split into thousands, hundreds, tens and ones, then add back up to itself."),
+    (("multiplication", "times table", "multiply", "arrays", "repeated addition", "multiplication array"),
+     "Multiplication as Arrays", multiplication_array,
+     "Watch three rows of four dots build up into an array, then get counted as three times four equals twelve."),
+    (("area", "perimeter", "area and perimeter", "rectangle area"),
+     "Area & Perimeter", area_perimeter,
+     "Watch the distance traced around a rectangle give its perimeter, then unit squares fill it to give its area."),
+    (("rounding", "round to nearest", "estimation", "number line"),
+     "Rounding Numbers", rounding_numberline,
+     "Watch 47 sit on a number line and roll up to 50 because it lands past the halfway mark of 45."),
+
+    # ── geography / earth science ──
+    (("earth layer", "layers of the earth", "crust mantle", "structure of the earth", "core mantle crust", "inner core", "outer core"),
+     "Layers of the Earth", earth_layers,
+     "Watch the Earth's layers reveal from crust to mantle to the liquid outer core and solid inner core."),
+    (("plate tectonic", "tectonic", "continental drift", "subduction", "convergent boundary", "plate boundary"),
+     "Plate Tectonics", plate_tectonics,
+     "Watch two crustal plates collide, one subducting beneath the other, buckling the edge up into mountains and volcanoes."),
+    (("volcano", "volcanic", "eruption", "magma", "lava"),
+     "Volcanic Eruption", volcano_eruption,
+     "Watch magma rise from a deep chamber up the conduit and burst from the vent, cooling into new rock on the slopes."),
+    (("latitude", "longitude", "coordinates", "equator", "prime meridian", "map grid", "gps"),
+     "Latitude & Longitude", latitude_longitude,
+     "Watch latitude and longitude lines cross on the globe to pin down a single exact location on Earth."),
+    (("atmosphere", "troposphere", "stratosphere", "layers of the atmosphere", "ozone layer"),
+     "Layers of the Atmosphere", atmosphere_layers,
+     "Watch the atmosphere stack up in bands from the weather-filled troposphere to the orbiting-height thermosphere."),
+
+    # ── economics ──
+    (("supply and demand", "supply demand", "demand curve", "supply curve", "market equilibrium", "equilibrium price"),
+     "Supply & Demand", supply_demand,
+     "Watch the demand and supply curves cross at the equilibrium price, then see the price rise when demand shifts up."),
+    (("elasticity", "elastic", "inelastic", "price elasticity"),
+     "Price Elasticity", price_elasticity,
+     "Watch a steep inelastic demand curve barely respond to a price change, while a flat elastic one swings quantity sharply."),
+    (("circular flow", "households and firms", "goods market", "factor market", "flow of income"),
+     "The Circular Flow", circular_flow,
+     "Watch money, goods and labour loop endlessly between households and firms through the goods and factor markets."),
+    (("production possibilit", "ppf", "opportunity cost", "scarcity", "trade-off", "trade off", "comparative advantage"),
+     "Production Possibilities", production_possibilities,
+     "Watch the production frontier separate wasteful, efficient and impossible output mixes, showing the opportunity-cost trade-off."),
+
+    # ── more computer science ──
+    (("binary search", "logarithmic search", "search sorted"),
+     "Binary Search", binary_search,
+     "Watch binary search halve a sorted list each step, throwing away the wrong half until it lands on the target."),
+    (("big o", "big-o", "time complexity", "asymptotic", "complexity analysis", "space complexity"),
+     "Big-O Complexity", big_o,
+     "Watch constant, linear and quadratic curves diverge, showing how each order of growth scales as the input gets large."),
 ]
 
 
