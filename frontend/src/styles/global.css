@@ -630,6 +630,38 @@ html, body, #root {
 }
 @keyframes sl-spin { to { transform: rotate(360deg); } }
 
+/* Page-entry orb that expands to fill the screen, then settles into a
+   permanent stronger-hue wash rather than fading to nothing (unlike
+   .star-dive-flash, which fully covers then disappears for a scene cut).
+   Reuses the same "small orb -> screen-filling colour" idea, but ends by
+   handing off to a persistent background tint instead of clearing away. */
+@keyframes page-orb-expand {
+  0%   { transform: scale(0.04); opacity: 1; }
+  55%  { transform: scale(9); opacity: 0.6; }
+  100% { transform: scale(16); opacity: 0; }
+}
+.page-orb-intro {
+  position: fixed; inset: 0; z-index: 6; pointer-events: none;
+  display: flex; align-items: center; justify-content: center;
+}
+.page-orb-intro::before {
+  content: ""; width: 34px; height: 34px; border-radius: 50%;
+  background: radial-gradient(circle, #fff, var(--hue, var(--pink)) 55%, transparent 78%);
+  box-shadow: 0 0 70px 22px color-mix(in srgb, var(--hue, var(--pink)) 55%, transparent);
+  animation: page-orb-expand 1s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+
+/* Tradecenter: the orb above is blue, so the background it settles into
+   keeps that same blue as a real, standing part of the space haze -
+   stars/void untouched, just a stronger blue wash added to the mix. */
+.page-scroll.trade-bg {
+  background:
+    radial-gradient(1100px 850px at 74% -8%, rgba(110, 201, 232, 0.24), transparent 62%),
+    radial-gradient(950px 750px at 12% 106%, rgba(213, 139, 232, 0.11), transparent 60%),
+    radial-gradient(800px 650px at 50% 45%, rgba(110, 201, 232, 0.10), transparent 66%),
+    var(--bg-void);
+}
+
 /* Constellation → system: the star's colour fills the WHOLE screen (bright core
    + opaque hue edges) so the scene cut is completely hidden — a smooth handoff. */
 .star-dive-flash {

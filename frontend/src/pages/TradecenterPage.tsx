@@ -93,7 +93,8 @@ export default function TradecenterPage() {
   }
 
   return (
-    <div className="page-scroll">
+    <div className="page-scroll trade-bg">
+      <div className="page-orb-intro" style={{ ["--hue" as any]: "var(--blue)" }} />
       <NebulaDrift />
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "36px 28px 80px 170px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 24 }}>
