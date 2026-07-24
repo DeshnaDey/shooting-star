@@ -52,6 +52,24 @@ def generate_questions(
     valid_ids = {s.id for s in subtopics}
     questions = _validate(raw.get("questions", []), qtype, valid_ids)
 
+    attempts = 0
+    while len(questions) < num_questions and attempts < 2:
+        attempts += 1
+        missing = num_questions - len(questions)
+        retry_spec = dict(spec, num_questions=missing)
+        retry_system = SYSTEM + (
+            "\n\nIMPORTANT: A previous attempt produced one or more multiple-choice questions "
+            "with duplicate or repeated answer choices among the 4 options. Generate NEW "
+            "questions on the given subtopics with 4 genuinely distinct, non-overlapping choices "
+            "each. Do not repeat any wording between choices in the same question."
+        )
+        raw_retry = llm.complete_json(retry_system, json.dumps(retry_spec))
+        for q in _validate(raw_retry.get("questions", []), qtype, valid_ids):
+            if len(questions) >= num_questions:
+                break
+            if all(q["prompt"] != have["prompt"] for have in questions):
+                questions.append(q)
+
     # top up with deterministic questions if the model under-delivered
     if len(questions) < num_questions:
         mock_raw = MockProvider().complete_json("TASK:generate_questions", json.dumps(spec))
@@ -81,6 +99,9 @@ def _validate(items: list, qtype: str, valid_ids: set[str]) -> list[dict]:
             if (not isinstance(choices, list) or len(choices) != 4
                     or not all(isinstance(c, str) for c in choices)
                     or not isinstance(ci, int) or not 0 <= ci <= 3):
+                continue
+            normalized = [" ".join(c.strip().lower().split()) for c in choices]
+            if len(set(normalized)) != len(normalized):
                 continue
             out.append({
                 "subtopic_id": sid, "prompt": prompt.strip(), "choices": choices,

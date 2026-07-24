@@ -231,6 +231,56 @@ def test_profile_and_progress(client, auth):
     assert client.get("/api/profile", headers=fresh).json()["totalAttempts"] == 0
 
 
+# ─── MCQ duplicate-option detection ──────────────────────────────────────────
+
+class _FakeLLM:
+    """Returns a duplicate-option MCQ set on the first call, clean ones after."""
+
+    def __init__(self):
+        self.calls = 0
+
+    def complete_json(self, system, user):
+        self.calls += 1
+        if self.calls == 1:
+            return {"questions": [
+                {
+                    "subtopic_id": "st-1",
+                    "prompt": "What is a stack?",
+                    "choices": ["LIFO structure", "lifo structure", "Queue", "Tree"],
+                    "correct_index": 0,
+                    "explanation": "",
+                },
+            ]}
+        return {"questions": [
+            {
+                "subtopic_id": "st-1",
+                "prompt": f"Second-call question {i}",
+                "choices": [f"Choice A{i}", f"Choice B{i}", f"Choice C{i}", f"Choice D{i}"],
+                "correct_index": 0,
+                "explanation": "",
+            }
+            for i in range(2)
+        ]}
+
+
+def test_mcq_duplicate_options_trigger_regeneration():
+    from app.services.quiz_generation import generate_questions
+    from app.models.models import Subtopic, Topic
+
+    topic = Topic(id="t-1", user_id=1, name="Data Structures", tag="cs", blurb="")
+    subtopics = [Subtopic(id="st-1", topic_id="t-1", name="Stacks", blurb="", mastery=0)]
+
+    fake_llm = _FakeLLM()
+    questions = generate_questions(fake_llm, topic, subtopics, "mcq", 2, None)
+
+    assert fake_llm.calls >= 2  # retry path was exercised
+    assert len(questions) == 2
+    for q in questions:
+        normalized = [" ".join(c.strip().lower().split()) for c in q["choices"]]
+        assert len(set(normalized)) == len(normalized)
+    assert all(q["prompt"].startswith("Second-call question") for q in questions)
+
+
 # ─── Regenerate subtopics ─────────────────────────────────────────────────────
 
 def test_regenerate_subtopics(client, auth):
