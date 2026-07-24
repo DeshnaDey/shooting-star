@@ -613,7 +613,121 @@ html, body, #root {
   100% { opacity: 1; transform: scale(1.05); }
 }
 
-/* Themed loader: planet orbiting a glowing core */
+/* ═══ Tradecenter (Knowledge Points Exchange) ═══════════════════════════ */
+.trade-page { padding: 28px 40px 60px 160px; }
+.trade-topbar { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.trade-refresh { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+
+.trade-search-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.trade-search {
+  flex: 1; min-width: 200px; padding: 9px 14px;
+  background: rgba(122, 75, 168, 0.08); border: 1px solid rgba(183, 156, 251, 0.3);
+  color: var(--text-bright); font-family: var(--font-body); font-size: 13px; outline: none;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+}
+.trade-search::placeholder { color: var(--text-faint); }
+
+.trade-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.trade-chip {
+  padding: 6px 13px; cursor: pointer; font-family: var(--font-mono); font-size: 8.5px; letter-spacing: 0.12em;
+  color: var(--text-dim); background: rgba(122, 75, 168, 0.08); border: 1px solid rgba(122, 75, 168, 0.25);
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+  transition: all 0.15s; white-space: nowrap;
+}
+.trade-chip:hover { color: var(--text-main); }
+.trade-chip.active { color: var(--white-core); background: rgba(213, 139, 232, 0.18); border-color: var(--pink); }
+.trade-chip.urgent.active { background: rgba(224, 95, 176, 0.22); border-color: var(--pink); }
+
+.trade-section-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; color: var(--pink-soft); margin: 16px 0 8px; }
+
+/* Auto-scrolling marquee row (default view, no filters active) */
+.trade-marquee { overflow: hidden; position: relative; margin: 0 -4px; }
+.trade-marquee::before, .trade-marquee::after {
+  content: ""; position: absolute; top: 0; bottom: 0; width: 40px; z-index: 2; pointer-events: none;
+}
+.trade-marquee::before { left: 0; background: linear-gradient(90deg, var(--bg-void), transparent); }
+.trade-marquee::after { right: 0; background: linear-gradient(270deg, var(--bg-void), transparent); }
+.trade-marquee-track { display: flex; gap: 12px; width: max-content; padding: 6px 4px; animation: trade-scroll 38s linear infinite; }
+.trade-marquee-track.rev { animation-direction: reverse; animation-duration: 44s; }
+.trade-marquee:hover .trade-marquee-track { animation-play-state: paused; }
+@keyframes trade-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* Filtered/static grid view */
+.trade-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+
+.trade-card {
+  flex: 0 0 250px; width: 250px;
+  padding: 13px 15px; display: flex; flex-direction: column; gap: 7px;
+  background: rgba(122, 75, 168, 0.08); border: 1px solid rgba(157, 111, 200, 0.28);
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  transition: all 0.15s; position: relative;
+}
+.trade-grid .trade-card { width: auto; flex: initial; }
+.trade-card:hover { border-color: var(--pink); transform: translateY(-2px); }
+.trade-card.voucher { border-style: dashed; border-color: rgba(246, 212, 143, 0.45); }
+.trade-card.voucher:hover { border-color: var(--gold); }
+
+.trade-card-head { display: flex; align-items: center; gap: 9px; }
+.trade-logo {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  display: grid; place-items: center; font-family: var(--font-display); font-size: 14px; font-weight: 700;
+  color: #0b1226;
+}
+.trade-logo-img { background: #fff; padding: 5px; box-sizing: border-box; }
+.trade-logo-img img { width: 100%; height: 100%; object-fit: contain; }
+.trade-card-brand { font-family: var(--font-mono); font-size: 7.5px; letter-spacing: 0.12em; color: var(--text-faint); }
+.trade-card-name { font-family: var(--font-display); font-size: 14.5px; color: var(--text-bright); line-height: 1.2; margin-top: 1px; }
+.trade-card-detail { font-size: 10.5px; color: var(--text-dim); line-height: 1.4; flex: 1; }
+.trade-card-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 1px; gap: 8px; }
+.trade-kp { font-family: var(--font-mono); font-size: 14px; color: var(--purple-pale); white-space: nowrap; }
+
+.trade-badge {
+  position: absolute; top: -7px; right: 10px; padding: 2px 8px;
+  font-family: var(--font-mono); font-size: 7px; letter-spacing: 0.1em;
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+}
+.trade-badge.unlock { background: var(--blue); color: #08141f; }
+.trade-badge.expiring { background: var(--pink); color: #240a1c; }
+
+.trade-countdown { font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.06em; color: var(--pink-soft); white-space: nowrap; }
+.trade-countdown.tight { color: var(--pink); }
+
+/* Tradecenter's own particle layer - drifting orbs + twinkling stars */
+.trade-particles { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.trade-orb {
+  position: absolute; border-radius: 50%; filter: blur(42px); opacity: 0.32;
+  animation-name: trade-orb-float; animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite; animation-direction: alternate;
+}
+@keyframes trade-orb-float {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(34px, -28px) scale(1.18); }
+}
+.trade-star {
+  position: absolute; width: 3px; height: 3px; border-radius: 50%;
+  background: #fff; box-shadow: 0 0 6px 1.5px rgba(255, 255, 255, 0.85);
+  animation: trade-star-twinkle 3.6s ease-in-out infinite;
+}
+@keyframes trade-star-twinkle {
+  0%, 100% { opacity: 0.12; transform: scale(0.8); }
+  50%      { opacity: 1; transform: scale(1.3); }
+}
+
+/* Drifting "points" - small glowing sparks floating upward, unique to
+   Tradecenter, thematically tied to the points-exchange idea. Pure CSS,
+   no extra component - positions/colours/timing come from inline styles
+   generated once in TradecenterPage.tsx. */
+.trade-sparks { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.trade-spark {
+  position: absolute; bottom: -20px; border-radius: 50%;
+  animation-name: trade-spark-float; animation-timing-function: linear; animation-iteration-count: infinite;
+}
+@keyframes trade-spark-float {
+  0%   { transform: translateY(0) scale(0.6); opacity: 0; }
+  8%   { opacity: 0.85; }
+  85%  { opacity: 0.5; }
+  100% { transform: translateY(-100vh) scale(1); opacity: 0; }
+}
 .space-loader { display: flex; flex-direction: column; align-items: center; }
 .sl-core {
   width: 18px; height: 18px; border-radius: 50%;
@@ -654,12 +768,35 @@ html, body, #root {
 /* Tradecenter: the orb above is blue, so the background it settles into
    keeps that same blue as a real, standing part of the space haze -
    stars/void untouched, just a stronger blue wash added to the mix. */
+/* Ambient page-wide rainbow layer (bigger, more colour than the haze
+   that normally sits tucked behind a single card) */
+.trade-ambient { position: fixed !important; inset: -10% !important; z-index: -1; opacity: 1 !important; }
+
 .page-scroll.trade-bg {
   background:
-    radial-gradient(1100px 850px at 74% -8%, rgba(110, 201, 232, 0.24), transparent 62%),
-    radial-gradient(950px 750px at 12% 106%, rgba(213, 139, 232, 0.11), transparent 60%),
-    radial-gradient(800px 650px at 50% 45%, rgba(110, 201, 232, 0.10), transparent 66%),
+    radial-gradient(700px 550px at 82% -4%, rgba(110, 201, 232, 0.10), transparent 60%),
+    radial-gradient(650px 550px at 20% 102%, rgba(122, 75, 168, 0.08), transparent 58%),
     var(--bg-void);
+}
+
+/* One concentrated, heavily-blurred nebula cloud - the reference photo's
+   composition: mostly dark navy space, ONE colourful cloud feature, not a
+   full-page colour wash. Uses the exact reference palette
+   (#0b1c3b / #7a4ba8 / #d58be8 / #6ec9e8 / #f6d48f). */
+.trade-nebula-cloud {
+  position: fixed; z-index: -1; pointer-events: none;
+  top: -12%; right: -8%; width: 62vmin; height: 62vmin;
+  filter: blur(64px); opacity: 0.55;
+  background:
+    radial-gradient(circle at 35% 40%, rgba(213, 139, 232, 0.55), transparent 55%),
+    radial-gradient(circle at 65% 30%, rgba(110, 201, 232, 0.50), transparent 55%),
+    radial-gradient(circle at 50% 65%, rgba(122, 75, 168, 0.48), transparent 58%),
+    radial-gradient(circle at 75% 70%, rgba(246, 212, 143, 0.24), transparent 55%);
+  animation: trade-cloud-drift 34s ease-in-out infinite alternate;
+}
+@keyframes trade-cloud-drift {
+  0%   { transform: scale(1) rotate(0deg); }
+  100% { transform: scale(1.12) rotate(6deg); }
 }
 
 /* Constellation → system: the star's colour fills the WHOLE screen (bright core
