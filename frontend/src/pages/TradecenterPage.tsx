@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { couponApi, ApiReward, ApiError } from "../lib/api";
 import { HudButton, HudPanel, MonoLabel, useToast } from "../components/Hud";
 import RainbowHaze from "../components/RainbowHaze";
-import NebulaDrift from "../components/NebulaDrift";
 import SpaceLoader from "../components/SpaceLoader";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -135,8 +134,21 @@ function RewardCard({
   const isExpiringSoon = countdown && !countdown.text.startsWith("EXPIRED") &&
     (new Date(reward.expires_at!).getTime() - now) / 3_600_000 <= EXPIRING_SOON_HOURS;
 
+  // Tint the card with the hue of its brand logo, kept subtle/semi-opaque so
+  // text stays legible. Same hue the monogram fallback logo uses. Vouchers
+  // (scratch cards) get a bright, shiny gold sheen instead - a diagonal
+  // gradient so they catch the light rather than reading as flat brown.
+  const isVoucher = reward.kind === "voucher";
+  const hue = isVoucher ? 46 : brandHue(reward.brand ?? reward.name);
+  const cardTint = {
+    ["--card-hue" as any]: String(hue),
+    background: isVoucher
+      ? "linear-gradient(135deg, hsla(50, 95%, 68%, 0.26) 0%, hsla(44, 88%, 58%, 0.14) 45%, hsla(40, 80%, 52%, 0.10) 100%)"
+      : `hsla(${hue}, 62%, 55%, 0.16)`,
+  };
+
   return (
-    <div className={`trade-card ${reward.kind === "voucher" ? "voucher" : ""}`}>
+    <div className={`trade-card ${reward.kind === "voucher" ? "voucher" : ""}`} style={cardTint}>
       {isUnlockSoon && <span className="trade-badge unlock">UNLOCK SOON</span>}
       {!isUnlockSoon && isExpiringSoon && <span className="trade-badge expiring">EXPIRING</span>}
 
@@ -269,7 +281,6 @@ export default function TradecenterPage() {
   return (
     <div className="page-scroll trade-bg trade-page">
       <div className="page-orb-intro" style={{ ["--hue" as any]: "var(--blue)" }} />
-      <NebulaDrift variant="vortex" />
       <div className="trade-nebula-cloud" />
       <TradeParticles />
       <div className="trade-sparks">
@@ -295,6 +306,13 @@ export default function TradecenterPage() {
           <h1 className="display-title" style={{ fontSize: 34, fontStyle: "italic", marginTop: 2 }}>
             Tradecenter
           </h1>
+          <p style={{
+            marginTop: 6, maxWidth: 420,
+            fontFamily: "var(--font-mono)", fontSize: 8.5, letterSpacing: "0.14em",
+            color: "var(--text-faint)", lineHeight: 1.5,
+          }}>
+            EVERY STAR YOU CHART EARNS KNOWLEDGE POINTS — TRADE THEM FOR SOMETHING REAL
+          </p>
         </div>
         <div style={{ position: "relative" }}>
           <RainbowHaze />
@@ -395,14 +413,6 @@ export default function TradecenterPage() {
           </div>
         </>
       )}
-
-      <p style={{
-        textAlign: "center", marginTop: 30,
-        fontFamily: "var(--font-mono)", fontSize: 8.5, letterSpacing: "0.14em",
-        color: "var(--text-faint)",
-      }}>
-        EVERY STAR YOU CHART EARNS KNOWLEDGE POINTS — TRADE THEM FOR SOMETHING REAL
-      </p>
 
       {confirming && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(4,8,20,0.7)", display: "grid", placeItems: "center", zIndex: 50 }}>
