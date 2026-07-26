@@ -86,6 +86,81 @@ const SPRITES: Record<string, SpriteDef> = {
       "XDDDX    XDDDX",
     ],
   },
+  // just the helmet + visor - used for the profile avatar
+  astronautFace: {
+    palette: { X: "#10182e", W: "#f4f8ff", V: "#0b1220", H: "#8fdcff" },
+    rows: [
+      "   XXXXXX   ",
+      " XXWWWWWWXX ",
+      "XWWWWWWWWWWX",
+      "XWVHVVVVVVWX",
+      "XWVVVVVVVVWX",
+      "XWVVVVVVVVWX",
+      "XWWVVVVVVWWX",
+      "XWWWWWWWWWWX",
+      " XXWWWWWWXX ",
+    ],
+  },
+  // ── Arcade game "hero" icons ──────────────────────────────────────────────
+  // Wordle → a bold letter W (like a guess tile)
+  letterW: {
+    palette: { X: "#f4f8ff" },
+    rows: [
+      "X...X",
+      "X...X",
+      "X...X",
+      "X...X",
+      "X.X.X",
+      "X.X.X",
+      "XX.XX",
+      "X...X",
+    ],
+  },
+  // Spelling Bee → a striped pixel bee with wings
+  bee: {
+    palette: { K: "#241a08", Y: "#f6d48f", W: "#eaf6ff" },
+    rows: [
+      "...K...K...",
+      "...WW.WW...",
+      "..WWKKKWW..",
+      ".WWKYYYKWW.",
+      "..KYKYKYK..",
+      "..YKYKYKY..",
+      "..KYKYKYK..",
+      "...KYYYK...",
+      "....KKK....",
+    ],
+  },
+  // Crossword → a mini black-and-white grid
+  crossgrid: {
+    palette: { W: "#eef4ff", K: "#0b1220" },
+    rows: [
+      "WWWKWWWWW",
+      "WKWWWKWWW",
+      "WWWWWWWKW",
+      "KWWKWWWWW",
+      "WWWWKWWWK",
+      "WWWWWWKWW",
+      "WKWWWWWWW",
+      "WWWKWWWKW",
+      "WWWWWKWWW",
+    ],
+  },
+  // Sprangle (Strands) → a pink word-path snaking through a dot grid
+  strandpath: {
+    palette: { D: "#7a6aa0", P: "#f7c4dc" },
+    rows: [
+      "P.D.D.D.D",
+      ".P.......",
+      "D.P.D.D.D",
+      "....P....",
+      "D.D.P.D.D",
+      "......P..",
+      "D.D.D.P.D",
+      ".......P.",
+      "D.D.D.D.P",
+    ],
+  },
 };
 
 export function PixelSprite({
@@ -143,14 +218,24 @@ export function PixelHud({ level = 30, coins = 12, lives = 4 }: { level?: number
   );
 }
 
-// Faint floating sprites scattered behind the arcade content.
-const DECOR: { name: keyof typeof SPRITES; top: string; left: string; px: number; delay: string }[] = [
-  { name: "invader", top: "14%", left: "6%", px: 4, delay: "0s" },
-  { name: "star", top: "26%", left: "88%", px: 4, delay: "0.6s" },
-  { name: "ghost", top: "62%", left: "4%", px: 4, delay: "1.1s" },
-  { name: "invader", top: "78%", left: "92%", px: 3, delay: "0.3s" },
-  { name: "star", top: "84%", left: "48%", px: 3, delay: "1.4s" },
-  { name: "coin", top: "40%", left: "95%", px: 4, delay: "0.9s" },
+// Faint floating sprites scattered behind the arcade content. Invaders come in
+// a spread of colours; the other sprites keep their own palettes.
+const DECOR: { name: keyof typeof SPRITES; top: string; left: string; px: number; delay: string; color?: string }[] = [
+  { name: "invader", top: "14%", left: "6%",  px: 4, delay: "0s",   color: "#8be0b0" },
+  { name: "star",    top: "26%", left: "88%", px: 4, delay: "0.6s" },
+  { name: "ghost",   top: "62%", left: "4%",  px: 4, delay: "1.1s" },
+  { name: "invader", top: "78%", left: "92%", px: 3, delay: "0.3s", color: "#f5b8d0" },
+  { name: "star",    top: "84%", left: "48%", px: 3, delay: "1.4s" },
+  { name: "coin",    top: "40%", left: "95%", px: 4, delay: "0.9s" },
+  // extra invaders in assorted colours, spread around the edges
+  { name: "invader", top: "8%",  left: "44%", px: 3, delay: "0.5s", color: "#f6d48f" },
+  { name: "invader", top: "34%", left: "16%", px: 4, delay: "1.7s", color: "#6ec9e8" },
+  { name: "invader", top: "52%", left: "80%", px: 3, delay: "0.2s", color: "#9d6fc8" },
+  { name: "invader", top: "70%", left: "30%", px: 4, delay: "1.0s", color: "#3fd6c0" },
+  { name: "invader", top: "20%", left: "70%", px: 3, delay: "2.1s", color: "#f5b8d0" },
+  { name: "invader", top: "90%", left: "68%", px: 4, delay: "0.8s", color: "#f6d48f" },
+  { name: "invader", top: "46%", left: "40%", px: 3, delay: "1.3s", color: "#6ec9e8" },
+  { name: "invader", top: "60%", left: "58%", px: 3, delay: "2.4s", color: "#9d6fc8" },
 ];
 
 export function PixelDecor() {
@@ -158,8 +243,37 @@ export function PixelDecor() {
     <div className="pixel-decor" aria-hidden>
       {DECOR.map((d, i) => (
         <span key={i} className="pixel-float" style={{ top: d.top, left: d.left, animationDelay: d.delay }}>
-          <PixelSprite name={d.name} px={d.px} />
+          <PixelSprite name={d.name} px={d.px} color={d.color} />
         </span>
+      ))}
+    </div>
+  );
+}
+
+// Small twinkling pixel stars scattered across the arcade background, in
+// warm yellow + baby pink. Fixed hand-spread positions so there's no layout
+// shift or hydration mismatch between reloads.
+const STAR_FIELD = Array.from({ length: 44 }, (_, i) => ({
+  top: `${(i * 47 + 11) % 100}%`,
+  left: `${(i * 73 + 7) % 100}%`,
+  size: 2 + (i % 3),                       // 2–4px pixel squares
+  color: i % 2 ? "#f6d48f" : "#f5b8d0",    // yellow / baby pink
+  delay: `${((i % 8) * 0.5).toFixed(1)}s`,
+}));
+
+export function ArcadeStars() {
+  return (
+    <div className="arc-stars" aria-hidden>
+      {STAR_FIELD.map((s, i) => (
+        <span
+          key={i}
+          className="arc-star"
+          style={{
+            top: s.top, left: s.left, width: s.size, height: s.size,
+            background: s.color, boxShadow: `0 0 ${s.size * 2}px ${s.color}`,
+            animationDelay: s.delay,
+          }}
+        />
       ))}
     </div>
   );

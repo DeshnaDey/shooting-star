@@ -42,6 +42,22 @@ REAL_CODES = [
         "days_until_expiry": None,
     },
     {
+        "brand": "Myntra",
+        "title": "Flat ₹500 off first order",
+        "code": "EORS500",
+        "category": "beauty",
+        "detail": "Flat ₹500 off your first Myntra order - fashion, footwear, beauty, accessories",
+        "days_until_expiry": 4,  # short window on purpose - demo data for "expiring soon"
+    },
+    {
+        "brand": "Swiggy Instamart",
+        "title": "30% off with OneCard",
+        "code": "ONECARD150",
+        "category": "food",
+        "detail": "30% off, up to ₹150, on orders above ₹399 when paying with OneCard - twice per user",
+        "days_until_expiry": None,
+    },
+    {
         "brand": "Flipkart",
         "title": "50% off sitewide (incl. Books)",
         "code": "FKG50",

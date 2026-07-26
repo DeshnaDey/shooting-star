@@ -613,7 +613,149 @@ html, body, #root {
   100% { opacity: 1; transform: scale(1.05); }
 }
 
-/* Themed loader: planet orbiting a glowing core */
+/* ═══ Tradecenter (Knowledge Points Exchange) ═══════════════════════════ */
+.trade-page { padding: 28px 40px 60px 160px; }
+.trade-topbar { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.trade-refresh { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+
+.trade-search-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.trade-search {
+  flex: 1; min-width: 200px; padding: 9px 14px;
+  background: rgba(122, 75, 168, 0.08); border: 1px solid rgba(183, 156, 251, 0.3);
+  color: var(--text-bright); font-family: var(--font-body); font-size: 13px; outline: none;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+}
+.trade-search::placeholder { color: var(--text-faint); }
+
+.trade-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.trade-chip {
+  padding: 6px 13px; cursor: pointer; font-family: var(--font-mono); font-size: 8.5px; letter-spacing: 0.12em;
+  color: var(--text-dim); background: rgba(122, 75, 168, 0.08); border: 1px solid rgba(122, 75, 168, 0.25);
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+  transition: all 0.15s; white-space: nowrap;
+}
+.trade-chip:hover { color: var(--text-main); }
+.trade-chip.active { color: var(--white-core); background: rgba(213, 139, 232, 0.18); border-color: var(--pink); }
+.trade-chip.urgent.active { background: rgba(224, 95, 176, 0.22); border-color: var(--pink); }
+
+.trade-section-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; color: var(--pink-soft); margin: 16px 0 8px; }
+
+/* Auto-scrolling marquee row (default view, no filters active) */
+.trade-marquee { overflow: hidden; position: relative; margin: 0 -4px; }
+.trade-marquee::before, .trade-marquee::after {
+  content: ""; position: absolute; top: 0; bottom: 0; width: 40px; z-index: 2; pointer-events: none;
+}
+.trade-marquee::before { left: 0; background: linear-gradient(90deg, var(--bg-void), transparent); }
+.trade-marquee::after { right: 0; background: linear-gradient(270deg, var(--bg-void), transparent); }
+.trade-marquee-track { display: flex; gap: 12px; width: max-content; padding: 6px 4px; animation: trade-scroll 38s linear infinite; }
+.trade-marquee-track.rev { animation-direction: reverse; animation-duration: 44s; }
+.trade-marquee:hover .trade-marquee-track { animation-play-state: paused; }
+@keyframes trade-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* Filtered/static grid view */
+.trade-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+
+.trade-card {
+  flex: 0 0 250px; width: 250px;
+  padding: 13px 15px; display: flex; flex-direction: column; gap: 7px;
+  background: rgba(122, 75, 168, 0.08); border: 1px solid rgba(157, 111, 200, 0.28);
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  transition: all 0.15s; position: relative;
+}
+.trade-grid .trade-card { width: auto; flex: initial; }
+.trade-card:hover { border-color: var(--pink); transform: translateY(-2px); }
+.trade-card.voucher {
+  border-style: dashed; border-color: rgba(246, 212, 143, 0.55);
+  overflow: hidden;
+  animation: voucher-glow 3.4s ease-in-out infinite;
+}
+.trade-card.voucher:hover { border-color: var(--gold); }
+/* Pulsing gold glow around the border */
+@keyframes voucher-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 1px rgba(246, 212, 143, 0.14),
+                0 0 10px rgba(246, 212, 143, 0.12),
+                inset 0 0 10px rgba(246, 212, 143, 0.05);
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgba(246, 212, 143, 0.34),
+                0 0 20px rgba(246, 212, 143, 0.26),
+                inset 0 0 16px rgba(246, 212, 143, 0.11);
+  }
+}
+/* Diagonal sheen that sweeps across, clipped to the card's angled shape */
+.trade-card.voucher::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 2;
+  background: linear-gradient(115deg, transparent 42%, rgba(255, 244, 205, 0.16) 50%, transparent 58%);
+  background-size: 250% 100%;
+  animation: voucher-sheen 5s ease-in-out infinite;
+}
+@keyframes voucher-sheen {
+  0% { background-position: 160% 0; }
+  55%, 100% { background-position: -60% 0; }
+}
+
+.trade-card-head { display: flex; align-items: center; gap: 10px; }
+.trade-logo {
+  width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+  display: grid; place-items: center; font-family: var(--font-display); font-size: 20px; font-weight: 700;
+  color: #0b1226;
+}
+.trade-logo-img { background: #fff; padding: 6px; box-sizing: border-box; }
+.trade-logo-img img { width: 100%; height: 100%; object-fit: contain; }
+.trade-card-brand { font-family: var(--font-mono); font-size: 7.5px; letter-spacing: 0.12em; color: var(--text-faint); }
+.trade-card-name { font-family: var(--font-display); font-size: 14.5px; color: var(--text-bright); line-height: 1.2; margin-top: 1px; }
+.trade-card-detail { font-size: 10.5px; color: var(--text-dim); line-height: 1.4; flex: 1; }
+.trade-card-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 1px; gap: 8px; }
+.trade-kp { font-family: var(--font-mono); font-size: 14px; color: var(--purple-pale); white-space: nowrap; }
+
+.trade-badge {
+  position: absolute; top: -7px; right: 10px; padding: 2px 8px;
+  font-family: var(--font-mono); font-size: 7px; letter-spacing: 0.1em;
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+}
+.trade-badge.unlock { background: var(--blue); color: #08141f; }
+.trade-badge.expiring { background: var(--pink); color: #240a1c; }
+
+.trade-countdown { font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.06em; color: var(--pink-soft); white-space: nowrap; }
+.trade-countdown.tight { color: var(--pink); }
+
+/* Tradecenter's own particle layer - drifting orbs + twinkling stars */
+.trade-particles { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.trade-orb {
+  position: absolute; border-radius: 50%; filter: blur(42px); opacity: 0.32;
+  animation-name: trade-orb-float; animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite; animation-direction: alternate;
+}
+@keyframes trade-orb-float {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(34px, -28px) scale(1.18); }
+}
+.trade-star {
+  position: absolute; width: 3px; height: 3px; border-radius: 50%;
+  background: #fff; box-shadow: 0 0 6px 1.5px rgba(255, 255, 255, 0.85);
+  animation: trade-star-twinkle 3.6s ease-in-out infinite;
+}
+@keyframes trade-star-twinkle {
+  0%, 100% { opacity: 0.12; transform: scale(0.8); }
+  50%      { opacity: 1; transform: scale(1.3); }
+}
+
+/* Drifting "points" - small glowing sparks floating upward, unique to
+   Tradecenter, thematically tied to the points-exchange idea. Pure CSS,
+   no extra component - positions/colours/timing come from inline styles
+   generated once in TradecenterPage.tsx. */
+.trade-sparks { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.trade-spark {
+  position: absolute; bottom: -20px; border-radius: 50%;
+  animation-name: trade-spark-float; animation-timing-function: linear; animation-iteration-count: infinite;
+}
+@keyframes trade-spark-float {
+  0%   { transform: translateY(0) scale(0.6); opacity: 0; }
+  8%   { opacity: 0.85; }
+  85%  { opacity: 0.5; }
+  100% { transform: translateY(-100vh) scale(1); opacity: 0; }
+}
 .space-loader { display: flex; flex-direction: column; align-items: center; }
 .sl-core {
   width: 18px; height: 18px; border-radius: 50%;
@@ -654,12 +796,35 @@ html, body, #root {
 /* Tradecenter: the orb above is blue, so the background it settles into
    keeps that same blue as a real, standing part of the space haze -
    stars/void untouched, just a stronger blue wash added to the mix. */
+/* Ambient page-wide rainbow layer (bigger, more colour than the haze
+   that normally sits tucked behind a single card) */
+.trade-ambient { position: fixed !important; inset: -10% !important; z-index: -1; opacity: 1 !important; }
+
 .page-scroll.trade-bg {
   background:
-    radial-gradient(1100px 850px at 74% -8%, rgba(110, 201, 232, 0.24), transparent 62%),
-    radial-gradient(950px 750px at 12% 106%, rgba(213, 139, 232, 0.11), transparent 60%),
-    radial-gradient(800px 650px at 50% 45%, rgba(110, 201, 232, 0.10), transparent 66%),
+    radial-gradient(700px 550px at 82% -4%, rgba(110, 201, 232, 0.10), transparent 60%),
+    radial-gradient(650px 550px at 20% 102%, rgba(122, 75, 168, 0.08), transparent 58%),
     var(--bg-void);
+}
+
+/* One concentrated, heavily-blurred nebula cloud - the reference photo's
+   composition: mostly dark navy space, ONE colourful cloud feature, not a
+   full-page colour wash. Uses the exact reference palette
+   (#0b1c3b / #7a4ba8 / #d58be8 / #6ec9e8 / #f6d48f). */
+.trade-nebula-cloud {
+  position: fixed; z-index: -1; pointer-events: none;
+  top: -12%; right: -8%; width: 62vmin; height: 62vmin;
+  filter: blur(64px); opacity: 0.55;
+  background:
+    radial-gradient(circle at 35% 40%, rgba(213, 139, 232, 0.55), transparent 55%),
+    radial-gradient(circle at 65% 30%, rgba(110, 201, 232, 0.50), transparent 55%),
+    radial-gradient(circle at 50% 65%, rgba(122, 75, 168, 0.48), transparent 58%),
+    radial-gradient(circle at 75% 70%, rgba(246, 212, 143, 0.24), transparent 55%);
+  animation: trade-cloud-drift 34s ease-in-out infinite alternate;
+}
+@keyframes trade-cloud-drift {
+  0%   { transform: scale(1) rotate(0deg); }
+  100% { transform: scale(1.12) rotate(6deg); }
 }
 
 /* Constellation → system: the star's colour fills the WHOLE screen (bright core
@@ -739,11 +904,62 @@ html, body, #root {
 .pixel-lives svg { animation: pixel-beat 1.6s ease-in-out infinite; }
 @keyframes pixel-beat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.18); } }
 
+/* small twinkling yellow + baby-pink pixel stars over the arcade background */
+.arc-stars { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.arc-star {
+  position: absolute; image-rendering: pixelated; opacity: 0.7;
+  animation: arc-star-tw 3.2s steps(2, jump-none) infinite;
+}
+@keyframes arc-star-tw {
+  0%, 100% { opacity: 0.22; transform: scale(1); }
+  50%      { opacity: 0.95; transform: scale(1.4); }
+}
+
+/* ═══ Game-card collage (pixel cards, opaque colours, asymmetric) ═══════════ */
+/* Two-column stagger: right column dropped down so the grid reads offset */
+.arc-collage {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 32px; margin-top: 20px; align-items: start;
+}
+.arc-col { display: flex; flex-direction: column; gap: 32px; }
+.arc-col-offset { margin-top: 96px; }
+.arc-gamecard {
+  position: relative; cursor: pointer; text-align: left;
+  display: flex; flex-direction: column; gap: 18px;
+  padding: 34px 34px 28px; min-height: 300px; color: #3a2f52;
+  image-rendering: pixelated;
+  border: 3px solid rgba(58, 47, 82, 0.22);
+  box-shadow: 6px 6px 0 rgba(58, 47, 82, 0.28), inset 0 0 0 2px rgba(255, 255, 255, 0.4);
+  clip-path: polygon(7px 0, calc(100% - 7px) 0, 100% 7px, 100% calc(100% - 7px), calc(100% - 7px) 100%, 7px 100%, 0 calc(100% - 7px), 0 7px);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.arc-gamecard:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: 10px 10px 0 rgba(58, 47, 82, 0.32), inset 0 0 0 2px rgba(255, 255, 255, 0.55);
+}
+.arc-gamecard-sprite { filter: drop-shadow(2px 2px 0 rgba(58, 47, 82, 0.25)); }
+/* mono/pixel-style lettering to match the sprites */
+.arc-gamecard-label { font-family: var(--font-mono); font-weight: 700; font-size: 24px; letter-spacing: 0.06em; text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.55); }
+.arc-gamecard-tag { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.16em; opacity: 0.72; margin-top: 6px; }
+.arc-gamecard-play { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.2em; opacity: 0.85; margin-top: auto; }
+.arc-gamecard.done { outline: 2px solid rgba(58, 47, 82, 0.5); outline-offset: 3px; }
+
+/* opaque pastel per-game colours */
+.g-wordle    { background: #a9d6ba; }
+.g-crossword { background: #aac7e8; }
+.g-bee       { background: #f2dda0; }
+.g-sprangle  { background: #d3bce7; }
+@media (max-width: 720px) {
+  .arc-collage { grid-template-columns: 1fr; gap: 16px; }
+  .arc-col { gap: 16px; }
+  .arc-col-offset { margin-top: 0; }
+}
+
 /* floating background sprites */
 .pixel-decor { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
 .pixel-float {
-  position: absolute; image-rendering: pixelated; opacity: 0.5;
-  filter: drop-shadow(0 0 6px rgba(139,224,176,0.35));
+  position: absolute; image-rendering: pixelated; opacity: 0.55;
+  filter: drop-shadow(0 0 6px rgba(255,255,255,0.28));
   animation: pixel-bob 6s ease-in-out infinite;
 }
 @keyframes pixel-bob {
@@ -790,7 +1006,7 @@ html, body, #root {
 
 /* rotating spiral galaxy (arcade only) */
 .nebula-drift.spiral { display: flex; align-items: center; justify-content: center; }
-.neb-galaxy { width: 135vmin; height: 135vmin; opacity: 0.5; transform: translate(14%, -6%); }
+.neb-galaxy { width: 150vmax; height: 150vmax; opacity: 0.5; }
 .neb-spin { transform-box: view-box; transform-origin: 200px 200px; animation: neb-rotate 120s linear infinite; }
 @keyframes neb-rotate { to { transform: rotate(360deg); } }
 
@@ -812,4 +1028,132 @@ html, body, #root {
   color: #0b1c3b; background: #f6d48f; padding: 4px 8px; white-space: nowrap;
   box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.35), inset 0 0 0 2px #fff6dc;
   animation: pixel-blink 1.5s steps(1) infinite;
+}
+
+/* ═══ Profile dossier layout ═══════════════════════════════════════════════ */
+.profile-wrap { max-width: 1180px; margin: 0 auto; padding: 34px 32px 80px 190px; }
+.profile-topline {
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 12px; margin-bottom: 18px;
+}
+
+/* Hero: identity card beside a bento of stats */
+.profile-hero {
+  display: grid; grid-template-columns: 300px 1fr; gap: 16px;
+  align-items: stretch; margin-bottom: 22px;
+}
+@media (max-width: 860px) { .profile-hero { grid-template-columns: 1fr; } }
+
+.profile-card {
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  justify-content: center;
+}
+.avatar-area {
+  position: relative; width: 158px; height: 158px; border-radius: 50%;
+  display: grid; place-items: center; cursor: pointer; overflow: hidden;
+  background: radial-gradient(circle at 50% 34%, rgba(110,201,232,0.20), rgba(8,20,40,0.65));
+  border: 1px solid rgba(110,201,232,0.42);
+  box-shadow: 0 0 24px rgba(110,201,232,0.22), inset 0 0 22px rgba(11,28,59,0.6);
+  transition: box-shadow 0.18s, border-color 0.18s;
+}
+.avatar-area:hover { border-color: var(--pink); box-shadow: 0 0 28px rgba(213,139,232,0.35), inset 0 0 22px rgba(11,28,59,0.6); }
+.avatar-area svg { image-rendering: pixelated; }
+.avatar-photo { width: 100%; height: 100%; object-fit: cover; }
+.avatar-edit {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 6px 0; text-align: center;
+  font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.14em;
+  color: var(--text-bright); background: rgba(4,10,24,0.74);
+  opacity: 0; transition: opacity 0.15s;
+}
+.avatar-area:hover .avatar-edit { opacity: 1; }
+.callsign { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; color: var(--text-dim); margin-top: 5px; }
+.callsign.dim { color: var(--text-faint); font-size: 9px; margin-top: 3px; }
+.avatar-reset {
+  cursor: pointer; font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.14em;
+  color: var(--text-dim); background: rgba(122,75,168,0.08);
+  border: 1px solid rgba(122,75,168,0.25); padding: 6px 12px;
+  clip-path: polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);
+  transition: color 0.15s, border-color 0.15s;
+}
+.avatar-reset:hover { color: var(--pink-soft); border-color: var(--pink); }
+
+.stat-bento { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; align-content: start; }
+.stat-box {
+  padding: 15px 17px;
+  background: rgba(122,75,168,0.06);
+  border: 1px solid rgba(122,75,168,0.22);
+  clip-path: polygon(9px 0,100% 0,100% calc(100% - 9px),calc(100% - 9px) 100%,0 100%,0 9px);
+  transition: border-color 0.15s, transform 0.15s;
+}
+.stat-box:hover { border-color: rgba(213,139,232,0.4); transform: translateY(-2px); }
+.stat-box.accent { background: rgba(213,139,232,0.08); border-color: rgba(213,139,232,0.4); }
+.stat-box.wide { grid-column: 1 / -1; }
+@media (max-width: 480px) { .stat-bento { grid-template-columns: 1fr; } .stat-box.wide { grid-column: auto; } }
+
+/* Asymmetric row: compact radar column beside wider progress column */
+.profile-columns {
+  display: grid; grid-template-columns: 400px 1fr; gap: 16px;
+  align-items: stretch; margin-bottom: 22px;
+}
+@media (max-width: 900px) { .profile-columns { grid-template-columns: 1fr; } }
+.cognitive-panel, .progress-panel { margin-bottom: 0; }
+
+/* Right column stacks the chart + a telemetry card that fills the leftover height */
+.progress-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.telemetry-card {
+  flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 18px;
+}
+.tele-index { display: flex; flex-direction: column; align-items: flex-start; margin-top: 4px; }
+.tele-index-num {
+  font-family: var(--font-display); font-size: 58px; line-height: 0.9;
+  color: var(--pink-soft); text-shadow: 0 0 24px rgba(213,139,232,0.4);
+}
+.tele-index-cap {
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em;
+  color: var(--text-dim); margin-top: 8px;
+}
+.tele-rows { display: flex; flex-direction: column; gap: 12px; }
+.tele-row {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  padding: 13px 16px;
+  background: rgba(122,75,168,0.06); border: 1px solid rgba(122,75,168,0.22);
+  clip-path: polygon(9px 0,100% 0,100% calc(100% - 9px),calc(100% - 9px) 100%,0 100%,0 9px);
+}
+.tele-row-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.14em; color: var(--text-dim); }
+.tele-row-val { font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.08em; color: var(--pink-soft); }
+
+.cognitive-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.cog-index {
+  display: flex; flex-direction: column; align-items: center; flex-shrink: 0;
+  padding: 6px 12px; line-height: 1;
+  border: 1px solid rgba(213,139,232,0.4); background: rgba(213,139,232,0.08);
+  clip-path: polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px);
+}
+.cog-index-num { font-family: var(--font-display); font-size: 24px; color: var(--pink-soft); }
+.cog-index-cap { font-family: var(--font-mono); font-size: 7px; letter-spacing: 0.16em; color: var(--text-dim); margin-top: 3px; }
+
+/* Cognitive profile — hexagonal radar stacked above metric bars */
+.cognitive-grid {
+  display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 12px;
+}
+.cognitive-bars { display: flex; flex-direction: column; gap: 12px; }
+.cognitive-bar-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.12em;
+  color: var(--text-dim); margin-bottom: 4px;
+}
+.cognitive-bar-val { color: var(--pink-soft); font-size: 12px; }
+.cognitive-bar-track {
+  height: 6px; background: rgba(122,75,168,0.14);
+  border: 1px solid rgba(122,75,168,0.22); overflow: hidden;
+}
+.cognitive-bar-fill {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, #6ec9e8, #d58be8);
+  box-shadow: 0 0 10px rgba(213,139,232,0.5);
+  transition: width 0.5s ease;
+}
+.cognitive-note {
+  font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.12em;
+  color: var(--text-faint); line-height: 1.5; margin-top: 4px;
 }

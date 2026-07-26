@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { api, ApiTopic, ArcadeBundle, ArcadeScoreResult } from "../lib/api";
+import { api, ArcadeBundle, ArcadeScoreResult } from "../lib/api";
 import { HudButton, HudPanel, MonoLabel } from "../components/Hud";
 import SpaceLoader from "../components/SpaceLoader";
-import { PixelHud, PixelDecor, ArcadeAstronaut } from "../components/PixelArt";
+import { PixelHud, PixelDecor, PixelSprite, ArcadeStars, ArcadeAstronaut } from "../components/PixelArt";
 import NebulaDrift from "../components/NebulaDrift";
 import WordleGame from "../components/arcade/WordleGame";
 import SpellingBeeGame from "../components/arcade/SpellingBeeGame";
@@ -11,79 +11,42 @@ import CrosswordGame from "../components/arcade/CrosswordGame";
 import StrandsGame from "../components/arcade/StrandsGame";
 
 type GameId = "wordle" | "spellingbee" | "crossword" | "strands";
-const GAMES: { id: GameId; label: string }[] = [
-  { id: "wordle", label: "WORDLE" },
-  { id: "spellingbee", label: "SPELLING BEE" },
-  { id: "crossword", label: "CROSSWORD" },
-  { id: "strands", label: "SPRANGLE" },
+
+// Each game gets its own pixel card: label, a one-line tease, a retro sprite
+// and a colour class used for its opaque background + collage placement.
+const GAME_CARDS: {
+  id: GameId; label: string; tag: string; col: "l" | "r";
+  sprite: "letterW" | "bee" | "crossgrid" | "strandpath"; px: number; iconColor?: string; cls: string;
+}[] = [
+  { id: "wordle",      label: "WORDLE",       tag: "CRACK THE HIDDEN WORD",    col: "l", sprite: "letterW",    px: 15, iconColor: "#3a2f52", cls: "g-wordle" },
+  { id: "crossword",   label: "CROSSWORD",    tag: "FILL THE WHOLE GRID",      col: "l", sprite: "crossgrid",  px: 10, cls: "g-crossword" },
+  { id: "spellingbee", label: "SPELLING BEE", tag: "SPELL AS MANY AS YOU CAN", col: "r", sprite: "bee",        px: 10, cls: "g-bee" },
+  { id: "strands",     label: "SPRANGLE",     tag: "UNTANGLE THE THEME",       col: "r", sprite: "strandpath", px: 10, cls: "g-sprangle" },
 ];
 
-// ─── Star picker (shown when the arcade is opened without a topic) ───────────
-function TopicPicker() {
-  const navigate = useNavigate();
-  const [, setParams] = useSearchParams();
-  const [topics, setTopics] = useState<ApiTopic[] | null>(null);
-  const [offline, setOffline] = useState(false);
-
-  useEffect(() => {
-    api.topics().then(setTopics).catch(() => { setTopics([]); setOffline(true); });
-  }, []);
-
-  // Studied ("lit") stars first — their word banks are richest.
-  const ordered = useMemo(
-    () => [...(topics ?? [])].sort((a, b) => Number(b.lit) - Number(a.lit) || b.progress - a.progress),
-    [topics]
-  );
-
+// Shared page shell so the loading / empty / offline states keep the same
+// background (spiral + pixel stars + decor) as the playable arcade.
+function ArcadeShell({ children }: { children: ReactNode }) {
   return (
     <div className="page-scroll arc-page">
       <NebulaDrift variant="spiral" />
+      <ArcadeStars />
       <PixelDecor />
       <ArcadeAstronaut />
-      <div className="arc-topbar">
-        <div>
-          <div className="mono-label">KNOWLEDGE ARCADE</div>
-          <h1 className="display-title" style={{ fontSize: 34, fontStyle: "italic" }}>Pick a star to play</h1>
-          <p style={{ fontSize: 13, color: "var(--text-dim)", maxWidth: 460, marginTop: 4 }}>
-            Every puzzle is built from the words of a topic you've charted. Choose one of your stars.
-          </p>
-        </div>
-      </div>
-
-      {topics === null ? (
-        <HudPanel className="arc-stage"><SpaceLoader label="READING YOUR SKY…" /></HudPanel>
-      ) : ordered.length === 0 ? (
-        <HudPanel>
-          <MonoLabel>{offline ? "API OFFLINE — START THE BACKEND" : "NO STARS YET"}</MonoLabel>
-          <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "8px 0 14px" }}>
-            Chart a topic in the constellation first, then come back to play it.
-          </p>
-          <HudButton onClick={() => navigate("/")}>◄ GO TO CONSTELLATION</HudButton>
-        </HudPanel>
-      ) : (
-        <div className="arc-picker">
-          {ordered.map((t) => (
-            <button key={t.id} className={`arc-topic ${t.lit ? "lit" : ""}`} onClick={() => setParams({ topic: t.id })}>
-              <MonoLabel style={{ color: t.lit ? "var(--pink-soft)" : "var(--text-faint)" }}>
-                {t.tag}{t.lit ? ` · ${t.progress}%` : " · UNLIT"}
-              </MonoLabel>
-              <div className="arc-topic-name">{t.name}</div>
-              <div className="arc-topic-play">▸ PLAY</div>
-            </button>
-          ))}
-        </div>
-      )}
+      {children}
     </div>
   );
 }
 
-// ─── The four games for a chosen topic ───────────────────────────────────────
-function ArcadeForTopic({ topicId, hasStar }: { topicId: string; hasStar: boolean }) {
+// ─── The daily arcade — one topic, four games, shown as a card collage ───────
+function ArcadeForTopic({ topicId, topicName, hasStar }: {
+  topicId: string; topicName: string; hasStar: boolean;
+}) {
   const navigate = useNavigate();
   const [bundle, setBundle] = useState<ArcadeBundle | null>(null);
   const [wordlist, setWordlist] = useState<Set<string>>(new Set());
   const [state, setState] = useState<"loading" | "ok" | "offline">("loading");
-  const [active, setActive] = useState<GameId>("wordle");
+  const [selected, setSelected] = useState<GameId | null>(null);
   const [done, setDone] = useState<Record<GameId, boolean>>({
     wordle: false, spellingbee: false, crossword: false, strands: false,
   });
@@ -92,6 +55,7 @@ function ArcadeForTopic({ topicId, hasStar }: { topicId: string; hasStar: boolea
 
   useEffect(() => {
     setState("loading");
+    setSelected(null);
     setDone({ wordle: false, spellingbee: false, crossword: false, strands: false });
     api.arcade(topicId).then((b) => { setBundle(b); setState("ok"); }).catch(() => setState("offline"));
     api.arcadeWordlist().then((r) => setWordlist(new Set(r.words.map((w) => w.toUpperCase())))).catch(() => setWordlist(new Set()));
@@ -108,6 +72,7 @@ function ArcadeForTopic({ topicId, hasStar }: { topicId: string; hasStar: boolea
 
   async function reroll() {
     setState("loading");
+    setSelected(null);
     setDone({ wordle: false, spellingbee: false, crossword: false, strands: false });
     try {
       const b = await api.arcade(topicId, true);
@@ -117,9 +82,9 @@ function ArcadeForTopic({ topicId, hasStar }: { topicId: string; hasStar: boolea
   }
 
   const gameEl = useMemo(() => {
-    if (!bundle) return null;
+    if (!bundle || !selected) return null;
     const common = { done: false, onShowResult: () => setShowResult(true) };
-    switch (active) {
+    switch (selected) {
       case "wordle":
         return <WordleGame data={bundle.wordle} wordlist={wordlist} {...common} done={done.wordle} onComplete={(s) => onComplete("wordle", s)} />;
       case "spellingbee":
@@ -129,39 +94,48 @@ function ArcadeForTopic({ topicId, hasStar }: { topicId: string; hasStar: boolea
       case "strands":
         return <StrandsGame data={bundle.strands} {...common} done={done.strands} onComplete={(s) => onComplete("strands", s)} />;
     }
-  }, [active, bundle, wordlist, done]);
+  }, [selected, bundle, wordlist, done]);
 
   if (state !== "ok" || !bundle) {
     return (
-      <div className="page-scroll" style={{ display: "grid", placeItems: "center" }}>
-        <HudPanel>
-          {state === "loading" ? <SpaceLoader label="BUILDING THE ARCADE…" /> : <MonoLabel>API OFFLINE — START THE BACKEND</MonoLabel>}
-          {state === "offline" && (
-            <>
-              <div style={{ height: 12 }} />
-              <HudButton onClick={() => navigate(hasStar ? `/system/${topicId}` : "/arcade")}>◄ BACK</HudButton>
-            </>
-          )}
-        </HudPanel>
-      </div>
+      <ArcadeShell>
+        <div style={{ display: "grid", placeItems: "center", minHeight: "60vh" }}>
+          <HudPanel>
+            {state === "loading" ? <SpaceLoader label="BUILDING TODAY'S ARCADE…" /> : <MonoLabel>API OFFLINE — START THE BACKEND</MonoLabel>}
+            {state === "offline" && (
+              <>
+                <div style={{ height: 12 }} />
+                <HudButton onClick={() => navigate(hasStar ? `/system/${topicId}` : "/arcade")}>◄ BACK</HudButton>
+              </>
+            )}
+          </HudPanel>
+        </div>
+      </ArcadeShell>
     );
   }
 
+  const doneCount = Object.values(done).filter(Boolean).length;
+  const activeCard = GAME_CARDS.find((g) => g.id === selected);
+
   return (
-    <div className="page-scroll arc-page">
-      <NebulaDrift variant="spiral" />
-      <PixelDecor />
-      <ArcadeAstronaut />
+    <ArcadeShell>
       <div className="arc-topbar">
         <div>
-          <button className="arc-back" onClick={() => navigate(hasStar ? `/system/${topicId}` : "/arcade")}>
-            ◄ {hasStar ? "SYSTEM" : "PICK ANOTHER STAR"}
-          </button>
-          <div className="mono-label">KNOWLEDGE ARCADE</div>
-          <h1 className="display-title" style={{ fontSize: 34, fontStyle: "italic" }}>Play the topic</h1>
+          {selected
+            ? <button className="arc-back" onClick={() => setSelected(null)}>◄ ALL GAMES</button>
+            : hasStar && <button className="arc-back" onClick={() => navigate(`/system/${topicId}`)}>◄ SYSTEM</button>}
+          <div className="mono-label">KNOWLEDGE ARCADE · DAILY</div>
+          <h1 className="display-title" style={{ fontSize: 34, fontStyle: "italic" }}>
+            {selected ? activeCard?.label : "Today's Star"}
+          </h1>
+          <p style={{ fontSize: 13, color: "var(--text-dim)", maxWidth: 480, marginTop: 4 }}>
+            {selected
+              ? <>Built from <b style={{ color: "var(--pink-soft)" }}>{topicName}</b> — today's charted star.</>
+              : <>Every puzzle today is drawn from <b style={{ color: "var(--pink-soft)" }}>{topicName}</b>. One star, four games.</>}
+          </p>
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10 }}>
-          <PixelHud lives={3} coins={Object.values(done).filter(Boolean).length * 5} />
+          <PixelHud lives={3} coins={doneCount * 5} />
           <div style={{ display: "flex", gap: 8 }}>
             {result && <HudButton variant="ghost" onClick={() => setShowResult(true)}>▸ RESULTS</HudButton>}
             <HudButton variant="ghost" onClick={reroll}>↻ NEW PUZZLES</HudButton>
@@ -169,15 +143,30 @@ function ArcadeForTopic({ topicId, hasStar }: { topicId: string; hasStar: boolea
         </div>
       </div>
 
-      <div className="arc-tabs">
-        {GAMES.map((g) => (
-          <button key={g.id} className={`arc-tab ${active === g.id ? "active" : ""} ${done[g.id] ? "done" : ""}`} onClick={() => setActive(g.id)}>
-            {g.label}{done[g.id] ? " ✓" : ""}
-          </button>
-        ))}
-      </div>
-
-      <HudPanel className="arc-stage">{gameEl}</HudPanel>
+      {selected ? (
+        <HudPanel className="arc-stage">{gameEl}</HudPanel>
+      ) : (
+        <div className="arc-collage">
+          {(["l", "r"] as const).map((col) => (
+            <div key={col} className={`arc-col ${col === "r" ? "arc-col-offset" : ""}`}>
+              {GAME_CARDS.filter((g) => g.col === col).map((g) => (
+                <button
+                  key={g.id}
+                  className={`arc-gamecard ${g.cls} ${done[g.id] ? "done" : ""}`}
+                  onClick={() => setSelected(g.id)}
+                >
+                  <div className="arc-gamecard-sprite"><PixelSprite name={g.sprite} px={g.px} color={g.iconColor} /></div>
+                  <div className="arc-gamecard-body">
+                    <div className="arc-gamecard-label">{g.label}{done[g.id] ? " ✓" : ""}</div>
+                    <div className="arc-gamecard-tag">{g.tag}</div>
+                  </div>
+                  <div className="arc-gamecard-play">{done[g.id] ? "▸ REPLAY" : "▸ PLAY"}</div>
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
 
       {showResult && result && (
         <div className="arc-modal" onClick={() => setShowResult(false)}>
@@ -200,14 +189,64 @@ function ArcadeForTopic({ topicId, hasStar }: { topicId: string; hasStar: boolea
           </div>
         </div>
       )}
-    </div>
+    </ArcadeShell>
   );
 }
 
+// ─── Picks the single daily topic from the cadet's explored stars ────────────
 export default function ArcadePage() {
+  const navigate = useNavigate();
   const { starId } = useParams();
   const [params] = useSearchParams();
-  const topicId = starId ?? params.get("topic") ?? undefined;
-  if (!topicId) return <TopicPicker />;
-  return <ArcadeForTopic topicId={topicId} hasStar={Boolean(starId)} />;
+  const explicit = starId ?? params.get("topic") ?? undefined;
+
+  const [pick, setPick] = useState<{ id: string; name: string } | null>(null);
+  const [state, setState] = useState<"loading" | "ready" | "none" | "offline">("loading");
+
+  useEffect(() => {
+    api.topics().then((ts) => {
+      if (explicit) {
+        const t = ts.find((x) => x.id === explicit);
+        setPick({ id: explicit, name: t?.name ?? "Today's Star" });
+        setState("ready");
+        return;
+      }
+      // Prefer explored ("lit") stars — their word banks are richest. Fall
+      // back to any charted topic. The pick is stable for the whole day.
+      const explored = ts.filter((t) => t.lit);
+      const pool = explored.length ? explored : ts;
+      if (!pool.length) { setState("none"); return; }
+      const day = Math.floor(Date.now() / 86_400_000);
+      const t = pool[day % pool.length];
+      setPick({ id: t.id, name: t.name });
+      setState("ready");
+    }).catch(() => setState(explicit ? "ready" : "offline"));
+  }, [explicit]);
+
+  // Offline but with an explicit topic: still try to load that arcade directly.
+  useEffect(() => {
+    if (state === "ready" && !pick && explicit) setPick({ id: explicit, name: "Today's Star" });
+  }, [state, pick, explicit]);
+
+  if (state === "loading") {
+    return <ArcadeShell><div style={{ display: "grid", placeItems: "center", minHeight: "60vh" }}><HudPanel><SpaceLoader label="READING YOUR SKY…" /></HudPanel></div></ArcadeShell>;
+  }
+  if (state === "none" || state === "offline") {
+    return (
+      <ArcadeShell>
+        <div style={{ display: "grid", placeItems: "center", minHeight: "60vh" }}>
+          <HudPanel>
+            <MonoLabel>{state === "offline" ? "API OFFLINE — START THE BACKEND" : "NO STARS YET"}</MonoLabel>
+            <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "8px 0 14px" }}>
+              {state === "offline" ? "The arcade needs the backend running to build today's puzzles." : "Chart a topic in the constellation first — today's games are built from a star you've explored."}
+            </p>
+            <HudButton onClick={() => navigate("/")}>◄ GO TO CONSTELLATION</HudButton>
+          </HudPanel>
+        </div>
+      </ArcadeShell>
+    );
+  }
+
+  if (!pick) return null;
+  return <ArcadeForTopic topicId={pick.id} topicName={pick.name} hasStar={Boolean(starId)} />;
 }
