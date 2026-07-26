@@ -87,9 +87,36 @@ export function MindmapView({
             {/* children */}
             {b.children.map((c, j) => {
               const spread = (j - (b.children.length - 1) / 2) * 44;
-              const cx = bx + side * 205;
-              const cy = by + spread;
               const lines = wrap(c, 30);
+
+              // Text offset from the branch node is normally a fixed 205px, but
+              // that can push the label past the canvas edge for branches near
+              // the left/right poles. Shrink the offset to fit the room actually
+              // available on this side first...
+              const CHAR_W = 6.5;
+              const TEXT_GAP = 84; // distance back from cx to the text anchor
+              const EDGE_MARGIN = 8;
+              const TARGET_OFFSET = 205;
+              const MIN_OFFSET = 90;
+              const textWidth = Math.max(...lines.map((ln) => ln.length), 1) * CHAR_W;
+              const boundaryDistance = side === 1 ? (W - EDGE_MARGIN - bx) : (bx - EDGE_MARGIN);
+              const maxOffset = boundaryDistance - textWidth + TEXT_GAP;
+              const offset = Math.max(MIN_OFFSET, Math.min(TARGET_OFFSET, maxOffset));
+
+              const cx = bx + side * offset;
+              const cy = by + spread;
+
+              // ...then, as a hard safety net regardless of the above, clamp the
+              // final rendered text position so it can never exceed the canvas
+              // bounds (accounting for anchor direction: "start" extends right
+              // from x, "end" extends left from x).
+              let textX = side === 1 ? cx - TEXT_GAP : cx + TEXT_GAP;
+              if (side === 1) {
+                textX = Math.max(EDGE_MARGIN, Math.min(textX, W - EDGE_MARGIN - textWidth));
+              } else {
+                textX = Math.min(W - EDGE_MARGIN, Math.max(textX, EDGE_MARGIN + textWidth));
+              }
+
               return (
                 <g key={j}>
                   <path
@@ -98,14 +125,14 @@ export function MindmapView({
                   />
                   <circle cx={cx - side * 92} cy={cy} r="2.4" fill={color} opacity="0.9" />
                   <text
-                    x={side === 1 ? cx - 84 : cx + 84}
+                    x={textX}
                     y={cy - (lines.length - 1) * 6 + 4}
                     textAnchor={side === 1 ? "start" : "end"}
                     fill="var(--text-main)"
                     style={{ font: "400 11px var(--font-body)" }}
                   >
                     {lines.map((ln, k) => (
-                      <tspan key={k} x={side === 1 ? cx - 84 : cx + 84} dy={k === 0 ? 0 : 13}>{ln}</tspan>
+                      <tspan key={k} x={textX} dy={k === 0 ? 0 : 13}>{ln}</tspan>
                     ))}
                   </text>
                 </g>
@@ -215,13 +242,22 @@ export function FlowView({
       const l = level.get(n.id)!;
       rows.set(l, [...(rows.get(l) ?? []), n.id]);
     });
-    const NODE_W = 210, NODE_H = 74, GAP_Y = 66, W = 780;
+    const NODE_W = 210, NODE_H = 74, GAP_Y = 66, GAP_X = 24;
+    // Canvas width must grow to fit the widest row, otherwise rows with 3+
+    // nodes end up with less center-to-center spacing than NODE_W and overlap.
+    const maxRowCount = Math.max(...[...rows.values()].map((ids) => ids.length));
+    const W = Math.max(780, maxRowCount * (NODE_W + GAP_X));
     const pos = new Map<string, { x: number; y: number }>();
     const sorted = [...rows.keys()].sort((a, b) => a - b);
     sorted.forEach((l, rowIdx) => {
       const ids = rows.get(l)!;
+      // Each row is packed tightly at its own content width (not stretched to
+      // fill the full canvas), then centered within W — so short rows stay
+      // compact while the widest row uses the full available width.
+      const rowContentW = ids.length * NODE_W + (ids.length - 1) * GAP_X;
+      const rowStartX = (W - rowContentW) / 2;
       ids.forEach((id, i) => {
-        pos.set(id, { x: (W / (ids.length + 1)) * (i + 1) - NODE_W / 2, y: rowIdx * (NODE_H + GAP_Y) + 16 });
+        pos.set(id, { x: rowStartX + i * (NODE_W + GAP_X), y: rowIdx * (NODE_H + GAP_Y) + 16 });
       });
     });
     // stable reveal order: top rows first, left-to-right within a row
